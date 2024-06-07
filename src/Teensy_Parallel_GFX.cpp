@@ -613,53 +613,54 @@ void Teensy_Parallel_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
 		if((x >= _displayclipx2) || // Clip right
 			 (y >= _displayclipy2) || // Clip bottom
 			 ((x + 6 * size_x - 1) < _displayclipx1) || // Clip left  TODO: this is not correct
-			 ((y + 8 * size_y - 1) < _displayclipy1))   // Clip top   TODO: this is not correct
+			 ((y + 8 * size_y - 1) < _displayclipy1)) {  // Clip top   TODO: this is not correct
 			return;
+	  	}
 
-			// need to build actual pixel rectangle we will output into.
-			int16_t y_char_top = y;	// remember the y
-			int16_t w =  6 * size_x;
-			int16_t h = 8 * size_y;
+		// need to build actual pixel rectangle we will output into.
+		int16_t y_char_top = y;	// remember the y
+		int16_t w =  6 * size_x;
+		int16_t h = 8 * size_y;
 
-			if(x < _displayclipx1) {	w -= (_displayclipx1-x); x = _displayclipx1; 	}
-			if((x + w - 1) >= _displayclipx2)  w = _displayclipx2  - x;
-			if(y < _displayclipy1) {	h -= (_displayclipy1 - y); y = _displayclipy1; 	}
-			if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
+		if(x < _displayclipx1) {	w -= (_displayclipx1-x); x = _displayclipx1; 	}
+		if((x + w - 1) >= _displayclipx2)  w = _displayclipx2  - x;
+		if(y < _displayclipy1) {	h -= (_displayclipy1 - y); y = _displayclipy1; 	}
+		if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
 
-			setAddr(x, y, x + w -1, y + h - 1);
+		setAddr(x, y, x + w -1, y + h - 1);
 
-			y = y_char_top;	// restore the actual y.
-			//writecommand_cont(ILI9488_RAMWR);
-			for (yc=0; (yc < 8) && (y < _displayclipy2); yc++) {
-				for (yr=0; (yr < size_y) && (y < _displayclipy2); yr++) {
-					x = x_char_start; 		// get our first x position...
-					if (y >= _displayclipy1) {
-						for (xc=0; xc < 5; xc++) {
-							if (glcdfont[c * 5 + xc] & mask) {
-								color = fgcolor;
-							} else {
-								color = bgcolor;
-							}
-							for (xr=0; xr < size_x; xr++) {
-								if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-									//write16BitColor(x, y, x + xr + w -1, y + yr + h - 1, pcolors, 1);
-                  drawPixel(x + xr + w -1, y + yr + h - 1, color);
-								}
-								x++;
-							}
+		y = y_char_top;	// restore the actual y.
+		//beginWrite16BitColors();
+		for (yc=0; (yc < 8) && (y < _displayclipy2); yc++) {
+			for (yr=0; (yr < size_y) && (y < _displayclipy2); yr++) {
+				x = x_char_start; 		// get our first x position...
+				if (y >= _displayclipy1) {
+					for (xc=0; xc < 5; xc++) {
+						if (glcdfont[c * 5 + xc] & mask) {
+							color = fgcolor;
+						} else {
+							color = bgcolor;
 						}
 						for (xr=0; xr < size_x; xr++) {
 							if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-									//write16BitColor(x, y, x + xr + w -1, y + yr + h - 1, pcolors, 1);
-                  drawPixel(x + xr + w -1, y + yr + h - 1, bgcolor);
+								//write16BitColor(x, y, x + xr + w -1, y + yr + h - 1, pcolors, 1);
+              drawPixel(x + xr + w -1, y + yr + h - 1, color);
 							}
 							x++;
 						}
 					}
-					y++;
+					for (xr=0; xr < size_x; xr++) {
+						if ((x >= _displayclipx1) && (x < _displayclipx2)) {
+								//write16BitColor(x, y, x + xr + w -1, y + yr + h - 1, pcolors, 1);
+              drawPixel(x + xr + w -1, y + yr + h - 1, bgcolor);
+						}
+						x++;
+					}
 				}
-				mask = mask << 1;
+				y++;
 			}
+			mask = mask << 1;
+		}
 	}
 }
 
@@ -994,15 +995,14 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c)
 			// output rectangle we are updating... We have already clipped end_x/y, but not yet start_x/y
 
 			setAddr( start_x_min, start_y_min, end_x, end_y);
-			//writecommand_cont(ILI9488_RAMWR);
+			beginWrite16BitColors();
 			int screen_y = start_y_min;
 			int screen_x;
 			
 			// Clear above character
 			while (screen_y < origin_y) {
 				for (screen_x = start_x_min; screen_x <= end_x; screen_x++) {
-					//write16BitColor(textbgcolor);
-          drawPixel(screen_x, screen_y, textbgcolor);
+					write16BitColor(textbgcolor);
 				}
 				screen_y++;
 			}
@@ -1020,13 +1020,12 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c)
 						if ((screen_x >= _displayclipx1) && (screen_x < _displayclipx2) && (screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
 							// Clear before or after pixel
 							if ((screen_x<origin_x) || (screen_x>=glyphend_x)){
-								//write16BitColor(textbgcolor);
-                drawPixel(screen_x, screen_y, textbgcolor);
+								write16BitColor(textbgcolor);
 							}
 							// Draw alpha-blended character
 							else{
 								uint8_t alpha = fetchpixel(data, bitoffset, xp);
-								drawPixel(screen_x, screen_y, alphaBlendRGB565Premultiplied( textcolorPrexpanded, textbgcolorPrexpanded, (uint8_t)(alpha * fontalphamx) ));
+								write16BitColor( alphaBlendRGB565Premultiplied( textcolorPrexpanded, textbgcolorPrexpanded, (uint8_t)(alpha * fontalphamx) ) );
 								bitoffset += fontbpp;
 								xp++;
 							}
@@ -1066,8 +1065,7 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c)
 							for (screen_x = start_x; screen_x < origin_x; screen_x++) {
 								if ((screen_x >= _displayclipx1) && (screen_x < _displayclipx2)) {
 									//Serial.write('-');
-									//write16BitColor(textbgcolor);
-                  drawPixel(screen_x, screen_y, textbgcolor);
+									write16BitColor(textbgcolor);
 								}
 							}
 						}	
@@ -1082,8 +1080,7 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c)
 							if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
 								while (bit_mask) {
 									if ((screen_x >= _displayclipx1) && (screen_x < _displayclipx2)) {
-										//write16BitColor((bits & bit_mask) ? textcolor : textbgcolor);
-                    drawPixel(screen_x, screen_y, (bits & bit_mask) ? textcolor : textbgcolor);
+										write16BitColor((bits & bit_mask) ? textcolor : textbgcolor);
 										//Serial.write((bits & bit_mask) ? '*' : '.');
 									}
 									bit_mask = bit_mask >> 1;
@@ -1097,8 +1094,7 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c)
 						if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
 							// output bg color and right hand side
 							while (screen_x++ <= end_x) {
-								//write16BitColor(textbgcolor);
-                drawPixel(screen_x, screen_y, textbgcolor);
+								write16BitColor(textbgcolor);
 								//Serial.write('+');
 							}
 							//Serial.println();
@@ -1113,10 +1109,10 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c)
 			screen_x = (end_y + 1 - screen_y) * (end_x + 1 - start_x_min); // How many bytes we need to still output
 			//Serial.printf("Clear Below: %d\n", screen_x);
 			while (screen_x-- > 0) {
-				//write16BitColor(textbgcolor);
-        drawPixel(screen_x,screen_y, textbgcolor);
+				write16BitColor(textbgcolor);
 			}
-			//write16BitColor(textbgcolor, true);
+			write16BitColor(textbgcolor);
+		  endWrite16BitColors();
 		}
 
 	}
@@ -1781,11 +1777,11 @@ uint8_t Teensy_Parallel_GFX::getRotation(void) {
 void Teensy_Parallel_GFX::sleep(bool enable) {
 	beginSPITransaction();
 	if (enable) {
-		writecommand_cont(ILI9488_DISPOFF);		
+		beginWrite16BitColors();		
 		writecommand_last(ILI9488_SLPIN);	
 		  endSPITransaction();
 	} else {
-		writecommand_cont(ILI9488_DISPON);
+		beginWrite16BitColors();
 		writecommand_last(ILI9488_SLPOUT);
 		endSPITransaction();
 		delay(5);

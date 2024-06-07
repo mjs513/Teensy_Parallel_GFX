@@ -142,6 +142,12 @@ public:
   virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {};
   virtual void setRotation(uint8_t r) {};
 
+  // kurts experiment
+  virtual void beginWrite16BitColors() {};
+  virtual void write16BitColor(uint16_t color) {};
+  virtual void endWrite16BitColors() {};
+
+
 	// setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
 	// Drawing is also restricted to the bounds of the display
 
