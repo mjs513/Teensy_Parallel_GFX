@@ -1448,8 +1448,6 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
     if (c == '\r')
         return;
 
-    uint16_t temp_color;
-
     // Some quick and dirty tests to see if we can
     uint8_t first = gfxFont->first;
     if ((c < first) || (c > gfxFont->last))
@@ -1591,9 +1589,10 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
             // Serial.printf("    SPI (%d %d) (%d %d)\n", x_start, y_start, x_end, y_end);Serial.flush();
             // compute the actual region we will output given
 
-            // setAddr((x_start >= _displayclipx1) ? x_start : _displayclipx1,
-            //		(y_start >= _displayclipy1) ? y_start : _displayclipy1,
-            //		x_end  - 1,  y_end - 1);
+            setAddr((x_start >= _displayclipx1) ? x_start : _displayclipx1,
+            		(y_start >= _displayclipy1) ? y_start : _displayclipy1,
+            		x_end  - 1,  y_end - 1);
+		  	beginWrite16BitColors();
             // Serial.printf("SetAddr: %u %u %u %u\n", (x_start >= _displayclipx1) ? x_start : _displayclipx1,
             //		(y_start >= _displayclipy1) ? y_start : _displayclipy1,
             //		x_end  - 1,  y_end - 1);
@@ -1603,9 +1602,7 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                 if ((y >= _displayclipy1) && (y < _displayclipy2)) {
                     for (int16_t xx = x_start; xx < x_end; xx++) {
                         if (xx >= _displayclipx1) {
-                            // write16BitColor(gfxFontLastCharPosFG(xx,y)? _gfx_last_char_textcolor : (xx < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
-                            drawPixel(xx, y, (gfxFontLastCharPosFG(xx, y) ? _gfx_last_char_textcolor : (xx < x_offset_cursor) ? _gfx_last_char_textbgcolor
-                                                                                                                              : textbgcolor));
+                            write16BitColor(gfxFontLastCharPosFG(xx,y)? _gfx_last_char_textcolor : (xx < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
                         }
                     }
                 }
@@ -1627,9 +1624,7 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                         while (x < x_left_fill) {
                             if ((x >= _displayclipx1) && (x < _displayclipx2)) {
                                 // Don't need to check if we are in previous char as in this case x_left_fill is set to 0...
-                                // write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor :  textbgcolor);
-                                temp_color = (gfxFontLastCharPosFG(x, y) ? _gfx_last_char_textcolor : textbgcolor);
-                                drawPixel(x, y, temp_color);
+                                write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor :  textbgcolor);
                             }
                             x++;
                         }
@@ -1640,14 +1635,9 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                             for (uint8_t xts = 0; xts < textsize_x; xts++) {
                                 if ((x >= _displayclipx1) && (x < _displayclipx2)) {
                                     if (bits & 0x80) {
-                                        // write16BitColor(textcolor);
-                                        // drawPixel(xx+xts, yts, textcolor);
-                                        drawPixel(x, y, textcolor);
+                                         write16BitColor(textcolor);
                                     } else {
-                                        // write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor : (x < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
-                                        temp_color = (gfxFontLastCharPosFG(x, y) ? _gfx_last_char_textcolor : (x < x_offset_cursor) ? _gfx_last_char_textbgcolor
-                                                                                                                                    : textbgcolor);
-                                        drawPixel(x, y, temp_color);
+                                        write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor : (x < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
                                     }
                                 }
                                 x++; // remember our logical position...
@@ -1657,9 +1647,7 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                         // Fill in any additional bg colors to right of our output
                         while (x < x_end) {
                             if (x >= _displayclipx1) {
-                                // write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor : (x < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
-                                drawPixel(x, y, gfxFontLastCharPosFG(x, y) ? _gfx_last_char_textcolor : (x < x_offset_cursor) ? _gfx_last_char_textbgcolor
-                                                                                                                              : textbgcolor);
+                                write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor : (x < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
                             }
                             x++;
                         }
@@ -1673,14 +1661,13 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                 if (y >= _displayclipy1) {
                     for (int16_t xx = x_start; xx < x_end; xx++) {
                         if (xx >= _displayclipx1) {
-                            // write16BitColor(gfxFontLastCharPosFG(xx,y)? _gfx_last_char_textcolor : (xx < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
-                            drawPixel(xx, y, (gfxFontLastCharPosFG(xx, y) ? _gfx_last_char_textcolor : (xx < x_offset_cursor) ? _gfx_last_char_textbgcolor
-                                                                                                                              : textbgcolor));
+                            write16BitColor(gfxFontLastCharPosFG(xx,y)? _gfx_last_char_textcolor : (xx < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
                         }
                     }
                 }
                 y++;
             }
+		  	endWrite16BitColors();
         }
         _gfx_c_last = c;
         _gfx_last_cursor_x = cursor_x + _originx;
