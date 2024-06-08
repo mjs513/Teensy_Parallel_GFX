@@ -1988,8 +1988,8 @@ int16_t Teensy_Parallel_GFX::drawString(const char string[], int16_t len, int po
 // pixel
 //					color palette data in array at palette
 void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h,
-                                           const uint8_t *pixels,
-                                           const uint16_t *palette) {
+                                        const uint8_t *pixels,
+                                        const uint16_t *palette) {
     // Serial.printf("\nWR8: %d %d %d %d %x\n", x, y, w, h, (uint32_t)pixels);
     x += _originx;
     y += _originy;
@@ -2033,11 +2033,11 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
         w = _displayclipx2 - x;
         x_clip_right -= w;
     }
-// Serial.printf("WR8C: %d %d %d %d %x- %d %d\n", x, y, w, h, (uint32_t)pixels,
-// x_clip_right, x_clip_left);
+    // Serial.printf("WR8C: %d %d %d %d %x- %d %d\n", x, y, w, h, (uint32_t)pixels,
+    // x_clip_right, x_clip_left);
 
     setAddr(x, y, x + w - 1, y + h - 1);
-  	beginWrite16BitColors();
+    beginWrite16BitColors();
     for (y = h; y > 0; y--) {
         pixels += x_clip_left;
         // Serial.printf("%x: ", (uint32_t)pixels);
@@ -2049,7 +2049,7 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
         write16BitColor(palette[*pixels++]);
         pixels += x_clip_right;
     }
-	endWrite16BitColors();
+    endWrite16BitColors();
 }
 
 // writeRect4BPP - 	write 4 bit per pixel paletted bitmap
@@ -2058,8 +2058,8 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
 //					color palette data in array at palette
 //					width must be at least 2 pixels
 void Teensy_Parallel_GFX::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h,
-                                           const uint8_t *pixels,
-                                           const uint16_t *palette) {
+                                        const uint8_t *pixels,
+                                        const uint16_t *palette) {
     // Simply call through our helper
     writeRectNBPP(x, y, w, h, 4, pixels, palette);
 }
@@ -2070,8 +2070,8 @@ void Teensy_Parallel_GFX::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t
 //					color palette data in array at palette
 //					width must be at least 4 pixels
 void Teensy_Parallel_GFX::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h,
-                                           const uint8_t *pixels,
-                                           const uint16_t *palette) {
+                                        const uint8_t *pixels,
+                                        const uint16_t *palette) {
     // Simply call through our helper
     writeRectNBPP(x, y, w, h, 2, pixels, palette);
 }
@@ -2083,8 +2083,8 @@ void Teensy_Parallel_GFX::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t
 //					color palette data in array at palette
 //					width must be at least 8 pixels
 void Teensy_Parallel_GFX::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h,
-                                           const uint8_t *pixels,
-                                           const uint16_t *palette) {
+                                        const uint8_t *pixels,
+                                        const uint16_t *palette) {
     // Simply call through our helper
     writeRectNBPP(x, y, w, h, 1, pixels, palette);
 }
@@ -2095,8 +2095,8 @@ void Teensy_Parallel_GFX::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t
 //  Currently writeRect1BPP, writeRect2BPP, writeRect4BPP use this to do all of
 //  the work.
 void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t h,
-                                           uint8_t bits_per_pixel, const uint8_t *pixels,
-                                           const uint16_t *palette) {
+                                        uint8_t bits_per_pixel, const uint8_t *pixels,
+                                        const uint16_t *palette) {
     // Serial.printf("\nWR8: %d %d %d %d %x\n", x, y, w, h, (uint32_t)pixels);
     x += _originx;
     y += _originy;
@@ -2154,7 +2154,7 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
         pixels; // remember our starting position offset into row
 
     setAddr(x, y, x + w - 1, y + h - 1);
-  	beginWrite16BitColors();
+    beginWrite16BitColors();
     for (; h > 0; h--) {
         pixels = pixels_row_start;            // setup for this row
         uint8_t pixel_shift = row_shift_init; // Setup mask
@@ -2170,5 +2170,118 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
         }
         pixels_row_start += count_of_bytes_per_row;
     }
-  	endWrite16BitColors();
+    endWrite16BitColors();
+}
+
+// fillRectVGradient	- fills area with vertical gradient
+void Teensy_Parallel_GFX::fillRectVGradient(int16_t x, int16_t y, int16_t w, int16_t h,
+                                            uint16_t color1, uint16_t color2) {
+    x += _originx;
+    y += _originy;
+
+    // Rectangular clipping
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (x < _displayclipx1) {
+        w -= (_displayclipx1 - x);
+        x = _displayclipx1;
+    }
+    if (y < _displayclipy1) {
+        h -= (_displayclipy1 - y);
+        y = _displayclipy1;
+    }
+    if ((x + w - 1) >= _displayclipx2)
+        w = _displayclipx2 - x;
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+    int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
+    color565toRGB14(color1, r1, g1, b1);
+    color565toRGB14(color2, r2, g2, b2);
+    dr = (r2 - r1) / h;
+    dg = (g2 - g1) / h;
+    db = (b2 - b1) / h;
+    r = r1;
+    g = g1;
+    b = b1;
+
+    {
+        setAddr(x, y, x + w - 1, y + h - 1);
+        beginWrite16BitColors();
+        for (y = h; y > 0; y--) {
+            uint16_t color = RGB14tocolor565(r, g, b);
+
+            for (x = w; x > 1; x--) {
+                write16BitColor(color);
+            }
+            write16BitColor(color);
+            r += dr;
+            g += dg;
+            b += db;
+        }
+        endWrite16BitColors();
+    }
+}
+
+// fillRectHGradient	- fills area with horizontal gradient
+void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int16_t h,
+                                            uint16_t color1, uint16_t color2) {
+    x += _originx;
+    y += _originy;
+
+    // Rectangular clipping
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (x < _displayclipx1) {
+        w -= (_displayclipx1 - x);
+        x = _displayclipx1;
+    }
+    if (y < _displayclipy1) {
+        h -= (_displayclipy1 - y);
+        y = _displayclipy1;
+    }
+    if ((x + w - 1) >= _displayclipx2)
+        w = _displayclipx2 - x;
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+    int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
+    uint16_t color;
+    color565toRGB14(color1, r1, g1, b1);
+    color565toRGB14(color2, r2, g2, b2);
+    dr = (r2 - r1) / w;
+    dg = (g2 - g1) / w;
+    db = (b2 - b1) / w;
+    r = r1;
+    g = g1;
+    b = b1;
+    {
+        setAddr(x, y, x + w - 1, y + h - 1);
+        beginWrite16BitColors();
+        for (y = h; y > 0; y--) {
+            for (x = w; x > 1; x--) {
+                color = RGB14tocolor565(r, g, b);
+                write16BitColor(color);
+                r += dr;
+                g += dg;
+                b += db;
+            }
+            color = RGB14tocolor565(r, g, b);
+            write16BitColor(color);
+            r = r1;
+            g = g1;
+            b = b1;
+        }
+        endWrite16BitColors();
+    }
+}
+
+// fillScreenVGradient - fills screen with vertical gradient
+void Teensy_Parallel_GFX::fillScreenVGradient(uint16_t color1, uint16_t color2) {
+    fillRectVGradient(0, 0, _width, _height, color1, color2);
+}
+
+// fillScreenHGradient - fills screen with horizontal gradient
+void Teensy_Parallel_GFX::fillScreenHGradient(uint16_t color1, uint16_t color2) {
+    fillRectHGradient(0, 0, _width, _height, color1, color2);
 }
