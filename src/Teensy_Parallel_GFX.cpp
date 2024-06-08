@@ -648,14 +648,14 @@ void Teensy_Parallel_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
                         }
                         for (xr = 0; xr < size_x; xr++) {
                             if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-								write16BitColor(color);
+                                write16BitColor(color);
                             }
                             x++;
                         }
                     }
                     for (xr = 0; xr < size_x; xr++) {
-	                    if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-							write16BitColor(bgcolor);
+                        if ((x >= _displayclipx1) && (x < _displayclipx2)) {
+                            write16BitColor(bgcolor);
                         }
                         x++;
                     }
@@ -1590,9 +1590,9 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
             // compute the actual region we will output given
 
             setAddr((x_start >= _displayclipx1) ? x_start : _displayclipx1,
-            		(y_start >= _displayclipy1) ? y_start : _displayclipy1,
-            		x_end  - 1,  y_end - 1);
-		  	beginWrite16BitColors();
+                    (y_start >= _displayclipy1) ? y_start : _displayclipy1,
+                    x_end - 1, y_end - 1);
+            beginWrite16BitColors();
             // Serial.printf("SetAddr: %u %u %u %u\n", (x_start >= _displayclipx1) ? x_start : _displayclipx1,
             //		(y_start >= _displayclipy1) ? y_start : _displayclipy1,
             //		x_end  - 1,  y_end - 1);
@@ -1602,7 +1602,8 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                 if ((y >= _displayclipy1) && (y < _displayclipy2)) {
                     for (int16_t xx = x_start; xx < x_end; xx++) {
                         if (xx >= _displayclipx1) {
-                            write16BitColor(gfxFontLastCharPosFG(xx,y)? _gfx_last_char_textcolor : (xx < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
+                            write16BitColor(gfxFontLastCharPosFG(xx, y) ? _gfx_last_char_textcolor : (xx < x_offset_cursor) ? _gfx_last_char_textbgcolor
+                                                                                                                            : textbgcolor);
                         }
                     }
                 }
@@ -1624,7 +1625,7 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                         while (x < x_left_fill) {
                             if ((x >= _displayclipx1) && (x < _displayclipx2)) {
                                 // Don't need to check if we are in previous char as in this case x_left_fill is set to 0...
-                                write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor :  textbgcolor);
+                                write16BitColor(gfxFontLastCharPosFG(x, y) ? _gfx_last_char_textcolor : textbgcolor);
                             }
                             x++;
                         }
@@ -1635,9 +1636,10 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                             for (uint8_t xts = 0; xts < textsize_x; xts++) {
                                 if ((x >= _displayclipx1) && (x < _displayclipx2)) {
                                     if (bits & 0x80) {
-                                         write16BitColor(textcolor);
+                                        write16BitColor(textcolor);
                                     } else {
-                                        write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor : (x < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
+                                        write16BitColor(gfxFontLastCharPosFG(x, y) ? _gfx_last_char_textcolor : (x < x_offset_cursor) ? _gfx_last_char_textbgcolor
+                                                                                                                                      : textbgcolor);
                                     }
                                 }
                                 x++; // remember our logical position...
@@ -1647,7 +1649,8 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                         // Fill in any additional bg colors to right of our output
                         while (x < x_end) {
                             if (x >= _displayclipx1) {
-                                write16BitColor(gfxFontLastCharPosFG(x,y)? _gfx_last_char_textcolor : (x < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
+                                write16BitColor(gfxFontLastCharPosFG(x, y) ? _gfx_last_char_textcolor : (x < x_offset_cursor) ? _gfx_last_char_textbgcolor
+                                                                                                                              : textbgcolor);
                             }
                             x++;
                         }
@@ -1661,13 +1664,14 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                 if (y >= _displayclipy1) {
                     for (int16_t xx = x_start; xx < x_end; xx++) {
                         if (xx >= _displayclipx1) {
-                            write16BitColor(gfxFontLastCharPosFG(xx,y)? _gfx_last_char_textcolor : (xx < x_offset_cursor)? _gfx_last_char_textbgcolor : textbgcolor);
+                            write16BitColor(gfxFontLastCharPosFG(xx, y) ? _gfx_last_char_textcolor : (xx < x_offset_cursor) ? _gfx_last_char_textbgcolor
+                                                                                                                            : textbgcolor);
                         }
                     }
                 }
                 y++;
             }
-		  	endWrite16BitColors();
+            endWrite16BitColors();
         }
         _gfx_c_last = c;
         _gfx_last_cursor_x = cursor_x + _originx;
@@ -1978,4 +1982,193 @@ int16_t Teensy_Parallel_GFX::drawString(const char string[], int16_t len, int po
         }
     }
     return sumX;
+}
+// writeRect8BPP - 	write 8 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, one byte per
+// pixel
+//					color palette data in array at palette
+void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h,
+                                           const uint8_t *pixels,
+                                           const uint16_t *palette) {
+    // Serial.printf("\nWR8: %d %d %d %d %x\n", x, y, w, h, (uint32_t)pixels);
+    x += _originx;
+    y += _originy;
+
+    uint16_t x_clip_left =
+        0; // How many entries at start of colors to skip at start of row
+    uint16_t x_clip_right =
+        0; // how many color entries to skip at end of row for clipping
+    // Rectangular clipping
+
+    // See if the whole thing out of bounds...
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1))
+        return;
+
+    // In these cases you can not do simple clipping, as we need to synchronize
+    // the colors array with the
+    // We can clip the height as when we get to the last visible we don't have to
+    // go any farther.
+    // also maybe starting y as we will advance the color array.
+    if (y < _displayclipy1) {
+        int dy = (_displayclipy1 - y);
+        h -= dy;
+        pixels += (dy * w); // Advance color array to
+        y = _displayclipy1;
+    }
+
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+    // For X see how many items in color array to skip at start of row and
+    // likewise end of row
+    if (x < _displayclipx1) {
+        x_clip_left = _displayclipx1 - x;
+        w -= x_clip_left;
+        x = _displayclipx1;
+    }
+    if ((x + w - 1) >= _displayclipx2) {
+        x_clip_right = w;
+        w = _displayclipx2 - x;
+        x_clip_right -= w;
+    }
+// Serial.printf("WR8C: %d %d %d %d %x- %d %d\n", x, y, w, h, (uint32_t)pixels,
+// x_clip_right, x_clip_left);
+
+    setAddr(x, y, x + w - 1, y + h - 1);
+  	beginWrite16BitColors();
+    for (y = h; y > 0; y--) {
+        pixels += x_clip_left;
+        // Serial.printf("%x: ", (uint32_t)pixels);
+        for (x = w; x > 1; x--) {
+            // Serial.print(*pixels, DEC);
+            write16BitColor(palette[*pixels++]);
+        }
+        // Serial.println(*pixels, DEC);
+        write16BitColor(palette[*pixels++]);
+        pixels += x_clip_right;
+    }
+	endWrite16BitColors();
+}
+
+// writeRect4BPP - 	write 4 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, 4 bits per
+// pixel
+//					color palette data in array at palette
+//					width must be at least 2 pixels
+void Teensy_Parallel_GFX::writeRect4BPP(int16_t x, int16_t y, int16_t w, int16_t h,
+                                           const uint8_t *pixels,
+                                           const uint16_t *palette) {
+    // Simply call through our helper
+    writeRectNBPP(x, y, w, h, 4, pixels, palette);
+}
+
+// writeRect2BPP - 	write 2 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, 4 bits per
+// pixel
+//					color palette data in array at palette
+//					width must be at least 4 pixels
+void Teensy_Parallel_GFX::writeRect2BPP(int16_t x, int16_t y, int16_t w, int16_t h,
+                                           const uint8_t *pixels,
+                                           const uint16_t *palette) {
+    // Simply call through our helper
+    writeRectNBPP(x, y, w, h, 2, pixels, palette);
+}
+
+///============================================================================
+// writeRect1BPP - 	write 1 bit per pixel paletted bitmap
+//					bitmap data in array at pixels, 4 bits per
+// pixel
+//					color palette data in array at palette
+//					width must be at least 8 pixels
+void Teensy_Parallel_GFX::writeRect1BPP(int16_t x, int16_t y, int16_t w, int16_t h,
+                                           const uint8_t *pixels,
+                                           const uint16_t *palette) {
+    // Simply call through our helper
+    writeRectNBPP(x, y, w, h, 1, pixels, palette);
+}
+
+///============================================================================
+// writeRectNBPP - 	write N(1, 2, 4, 8) bit per pixel paletted bitmap
+//					bitmap data in array at pixels
+//  Currently writeRect1BPP, writeRect2BPP, writeRect4BPP use this to do all of
+//  the work.
+void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t h,
+                                           uint8_t bits_per_pixel, const uint8_t *pixels,
+                                           const uint16_t *palette) {
+    // Serial.printf("\nWR8: %d %d %d %d %x\n", x, y, w, h, (uint32_t)pixels);
+    x += _originx;
+    y += _originy;
+    uint8_t pixels_per_byte = 8 / bits_per_pixel;
+    uint16_t count_of_bytes_per_row =
+        (w + pixels_per_byte - 1) /
+        pixels_per_byte; // Round up to handle non multiples
+    uint8_t row_shift_init =
+        8 - bits_per_pixel;                             // We shift down 6 bits by default
+    uint8_t pixel_bit_mask = (1 << bits_per_pixel) - 1; // get mask to use below
+    // Rectangular clipping
+
+    // See if the whole thing out of bounds...
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1))
+        return;
+
+    // In these cases you can not do simple clipping, as we need to synchronize
+    // the colors array with the
+    // We can clip the height as when we get to the last visible we don't have to
+    // go any farther.
+    // also maybe starting y as we will advance the color array.
+    // Again assume multiple of 8 for width
+    if (y < _displayclipy1) {
+        int dy = (_displayclipy1 - y);
+        h -= dy;
+        pixels += dy * count_of_bytes_per_row;
+        y = _displayclipy1;
+    }
+
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+    // For X see how many items in color array to skip at start of row and
+    // likewise end of row
+    if (x < _displayclipx1) {
+        uint16_t x_clip_left = _displayclipx1 - x;
+        w -= x_clip_left;
+        x = _displayclipx1;
+        // Now lets update pixels to the rigth offset and mask
+        uint8_t x_clip_left_bytes_incr = x_clip_left / pixels_per_byte;
+        pixels += x_clip_left_bytes_incr;
+        row_shift_init =
+            8 -
+            (x_clip_left - (x_clip_left_bytes_incr * pixels_per_byte) + 1) *
+                bits_per_pixel;
+    }
+
+    if ((x + w - 1) >= _displayclipx2) {
+        w = _displayclipx2 - x;
+    }
+
+    const uint8_t *pixels_row_start =
+        pixels; // remember our starting position offset into row
+
+    setAddr(x, y, x + w - 1, y + h - 1);
+  	beginWrite16BitColors();
+    for (; h > 0; h--) {
+        pixels = pixels_row_start;            // setup for this row
+        uint8_t pixel_shift = row_shift_init; // Setup mask
+
+        for (int i = 0; i < w; i++) {
+            write16BitColor(palette[((*pixels) >> pixel_shift) & pixel_bit_mask]);
+            if (!pixel_shift) {
+                pixel_shift = 8 - bits_per_pixel; // setup next mask
+                pixels++;
+            } else {
+                pixel_shift -= bits_per_pixel;
+            }
+        }
+        pixels_row_start += count_of_bytes_per_row;
+    }
+  	endWrite16BitColors();
 }
