@@ -133,17 +133,13 @@ class Teensy_Parallel_GFX : public Print {
     Teensy_Parallel_GFX(int16_t w, int16_t h);
 
     virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {};
-    virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
-    virtual void drawPixel(int16_t x, int16_t y, uint16_t color) {};
-    virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {};
-    virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {};
-    virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {};
-    virtual void setRotation(uint8_t r) {};
-
-    // kurts experiment
     virtual void beginWrite16BitColors() {};
     virtual void write16BitColor(uint16_t color) {};
     virtual void endWrite16BitColors() {};
+    virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
+
+    virtual void setRotation(uint8_t r) {};
+       
 
     // setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
     // Drawing is also restricted to the bounds of the display
@@ -213,7 +209,6 @@ class Teensy_Parallel_GFX : public Print {
 
     // from Adafruit_GFX.h
     void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
-
     void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
     void fillScreen(uint16_t color);
     void drawRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
@@ -224,6 +219,15 @@ class Teensy_Parallel_GFX : public Print {
     void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, uint16_t color);
     void drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
     void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
+    void drawPixel(int16_t x, int16_t y, uint16_t color);
+    void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+    void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+    void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+    void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors);
+    void writeSubImageRect(int16_t x, int16_t y, int16_t w, int16_t h, 
+        int16_t image_offset_x, int16_t image_offset_y, int16_t image_width, 
+        int16_t image_height, const uint16_t *pcolors);
+
 
     virtual size_t write(uint8_t);
     virtual size_t write(const uint8_t *buffer, size_t size);
