@@ -482,7 +482,7 @@ size_t Teensy_Parallel_GFX::write(const uint8_t *buffer, size_t size) {
                 // skip em
             } else {
                 if (scrollEnable && isWritingScrollArea && (cursor_y > (scroll_y + scroll_height - textsize_y * 8))) {
-                    // scrollTextArea(textsize_y*8);
+                    scrollTextArea(textsize_y*8);
                     cursor_y -= textsize_y * 8;
                     cursor_x = scroll_x;
                 }
@@ -868,7 +868,7 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
     }
 
     if (scrollEnable && isWritingScrollArea && (cursor_y > (scroll_y + scroll_height - font->cap_height))) {
-        // scrollTextArea(font->line_space);
+        scrollTextArea(font->line_space);
         cursor_y -= font->line_space;
         cursor_x = scroll_x;
     }
@@ -2483,3 +2483,36 @@ void Teensy_Parallel_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_
   endWrite16BitColors();
 }
 
+
+void Teensy_Parallel_GFX::scrollTextArea(uint8_t scrollSize){
+	uint16_t awColors[scroll_width];
+	for (int y=scroll_y+scrollSize; y < (scroll_y+scroll_height); y++) { 
+		readRect(scroll_x, y, scroll_width, 1, awColors); 
+		writeRect(scroll_x, y-scrollSize, scroll_width, 1, awColors);  
+	}
+	fillRect(scroll_x, (scroll_y+scroll_height)-scrollSize, scroll_width, scrollSize, scrollbgcolor);
+}
+
+void Teensy_Parallel_GFX::setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h){
+	scroll_x = x; 
+	scroll_y = y;
+	scroll_width = w; 
+	scroll_height = h;
+}
+
+void Teensy_Parallel_GFX::setScrollBackgroundColor(uint16_t color){
+	scrollbgcolor=color;
+	fillRect(scroll_x,scroll_y,scroll_width,scroll_height,scrollbgcolor);
+}
+
+void Teensy_Parallel_GFX::enableScroll(void){
+	scrollEnable = true;
+}
+
+void Teensy_Parallel_GFX::disableScroll(void){
+	scrollEnable = false;
+}
+
+void Teensy_Parallel_GFX::resetScrollBackgroundColor(uint16_t color){
+	scrollbgcolor=color;
+}	
