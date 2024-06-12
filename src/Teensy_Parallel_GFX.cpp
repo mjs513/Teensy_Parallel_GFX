@@ -242,7 +242,7 @@ void Teensy_Parallel_GFX::fillCircle(int16_t x0, int16_t y0, int16_t r,
 }
 
 void Teensy_Parallel_GFX::fillScreen(uint16_t color) {
-    fillRect(0, 1, _width, _height, color);
+    fillRect(0, 0, _width, _height, color);
 }
 
 // Draw a triangle
