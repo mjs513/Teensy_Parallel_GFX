@@ -104,7 +104,7 @@ extern "C" const unsigned char glcdfont[];
 Teensy_Parallel_GFX::Teensy_Parallel_GFX(int16_t w, int16_t h) : WIDTH(w), HEIGHT(h) {
     _width = WIDTH;
     _height = HEIGHT;
-#ifdef ENABLE_ILI9341_FRAMEBUFFER
+#ifdef ENABLE_FRAMEBUFFER
   _pfbtft = NULL;
   _use_fbtft = 0; // Are we in frame buffer mode?
   _we_allocated_buffer = NULL;
@@ -142,7 +142,6 @@ uint8_t Teensy_Parallel_GFX::useFrameBuffer(
         return 0; // failed
       _pfbtft = (uint16_t *)(((uintptr_t)_we_allocated_buffer + 32) &
                              ~((uintptr_t)(31)));
-      memset(_pfbtft, 0, CBALLOC);
     }
     _use_fbtft = 1;
     //clearChangedRange(); // make sure the dirty range is updated.
@@ -173,10 +172,10 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
 // Will go by buffer as maybe can do interesting things?
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    writeRect(0, 0, 480, 320, _pfbtft);
+    writeRect(0, 0, _width, _height, _pfbtft);
   }
   //clearChangedRange(); // make sure the dirty range is updated.
-   memset(_pfbtft, 0, CBALLOC);
+   //memset(_pfbtft, 0, CBALLOC); //leave for now until changed range implemented
 
 #endif
 }
@@ -714,6 +713,49 @@ void Teensy_Parallel_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
         if ((y + h - 1) >= _displayclipy2)
             h = _displayclipy2 - y;
 
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+      //updateChangedRange(
+      //    x, y, 6 * size_x,
+      //    8 * size_y); // update the range of the screen that has been changed;
+      uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+      for (yc = 0; (yc < 8) && (y < _displayclipy2); yc++) {
+        for (yr = 0; (yr < size_y) && (y < _displayclipy2); yr++) {
+          x = x_char_start; // get our first x position...
+          if (y >= _displayclipy1) {
+            uint16_t *pfbPixel = pfbPixel_row;
+            for (xc = 0; xc < 5; xc++) {
+              if (glcdfont[c * 5 + xc] & mask) {
+                color = fgcolor;
+              } else {
+                color = bgcolor;
+              }
+              for (xr = 0; xr < size_x; xr++) {
+                if ((x >= _displayclipx1) && (x < _displayclipx2)) {
+                  *pfbPixel = color;
+                }
+                pfbPixel++;
+                x++;
+              }
+            }
+            for (xr = 0; xr < size_x; xr++) {
+              if ((x >= _displayclipx1) && (x < _displayclipx2)) {
+                *pfbPixel = bgcolor;
+              }
+              pfbPixel++;
+              x++;
+            }
+          }
+          pfbPixel_row += _width; // setup pointer to
+          y++;
+        }
+        mask = mask << 1;
+      }
+
+    } else
+#endif
+    {
         setAddr(x, y, x + w - 1, y + h - 1);
 
         y = y_char_top; // restore the actual y.
@@ -747,6 +789,7 @@ void Teensy_Parallel_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
             mask = mask << 1;
         }
     }
+  }
 }
 
 void Teensy_Parallel_GFX::setFont(const ILI9341_t3_font_t &f) {
@@ -2759,11 +2802,11 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
   if((x + w - 1) >= _displayclipx2)  w = _displayclipx2  - x;
   if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
   
-  #ifdef ENABLE_ILI9341_FRAMEBUFFER
+  #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
     //updateChangedRange(
     //    x, y, w, h); // update the range of the screen that has been changed;
-    if ((x & 1) || (w & 1)) {
+    //if ((x & 1) || (w & 1)) {
       uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
       for (; h > 0; h--) {
         uint16_t *pfbPixel = pfbPixel_row;
@@ -2772,7 +2815,7 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
         }
         pfbPixel_row += _width;
       }
-    }
+    //}
   } else
 #endif
   {
@@ -2792,10 +2835,12 @@ void Teensy_Parallel_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
 	if((x < _displayclipx1) ||(x >= _displayclipx2) || (y < _displayclipy1) || (y >= _displayclipy2)) return;
 
 #ifdef ENABLE_FRAMEBUFFER
-	if (_use_fbtft) {
-		_pfbtft[y*_width + x] = color;
+  if (_use_fbtft) {
+    //updateChangedRange(
+    //    x, y); // update the range of the screen that has been changed;
+    _pfbtft[y * _width + x] = color;
 
-	} else 
+  } else
 #endif
 	{
 		//setAddr(x, y, x, y);
