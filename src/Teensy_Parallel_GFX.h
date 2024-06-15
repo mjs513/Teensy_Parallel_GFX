@@ -48,6 +48,9 @@
 #ifndef _TEENSY_ILI9488P_GFX_H
 #define _TEENSY_ILI9488P_GFX_H
 
+#define ENABLE_FRAMEBUFFER
+
+#ifdef __cplusplus
 #include "Arduino.h"
 #include "ILI9341_fonts.h"
 #include <stdint.h>
@@ -131,6 +134,8 @@ class Teensy_Parallel_GFX : public Print {
 
   public:
     Teensy_Parallel_GFX(int16_t w, int16_t h);
+    void pushPixels16bit(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
+    void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2){};
 
     virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {};
     virtual void beginWrite16BitColors() {};
@@ -338,6 +343,14 @@ class Teensy_Parallel_GFX : public Print {
                            uint16_t color1, uint16_t color2);
     void fillScreenVGradient(uint16_t color1, uint16_t color2);
     void fillScreenHGradient(uint16_t color1, uint16_t color2);
+  void setFrameBuffer(uint16_t *frame_buffer);
+  uint8_t
+  useFrameBuffer(boolean b);  // use the frame buffer?  First call will allocate
+  void freeFrameBuffer(void); // explicit call to release the buffer
+  void updateScreen(void);    // call to say update the screen now.
+#ifdef ENABLE_FRAMEBUFFER  
+  uint16_t *getFrameBuffer() { return _pfbtft; }
+#endif
 
   protected:
     int16_t WIDTH;
@@ -386,7 +399,12 @@ class Teensy_Parallel_GFX : public Print {
     int16_t scroll_x, scroll_y, scroll_width, scroll_height;
     boolean scrollEnable,isWritingScrollArea; // If set, 'wrap' text at right edge of display
 
-
+#ifdef ENABLE_FRAMEBUFFER
+  // Add support for optional frame buffer
+  uint16_t *_pfbtft;              // Optional Frame buffer
+  uint8_t _use_fbtft;             // Are we in frame buffer mode?
+  uint16_t *_we_allocated_buffer; // We allocated the buffer;
+#endif
     // GFX Font support
     const GFXfont *gfxFont = nullptr;
     int8_t _gfxFont_min_yOffset = 0;
@@ -435,4 +453,6 @@ class Teensy_Parallel_GFX : public Print {
     void charBounds(char c, int16_t *x, int16_t *y,
                     int16_t *minx, int16_t *miny, int16_t *maxx, int16_t *maxy);
 };
+#endif // __cplusplus
+
 #endif
