@@ -2586,22 +2586,59 @@ void Teensy_Parallel_GFX::fillRectVGradient(int16_t x, int16_t y, int16_t w, int
     g = g1;
     b = b1;
 
-    {
-        setAddr(x, y, x + w - 1, y + h - 1);
-        beginWrite16BitColors();
-        for (y = h; y > 0; y--) {
-            uint16_t color = RGB14tocolor565(r, g, b);
-
-            for (x = w; x > 1; x--) {
-                write16BitColor(color);
-            }
-            write16BitColor(color);
-            r += dr;
-            g += dg;
-            b += db;
+#ifdef ENABLE_ILI9341_FRAMEBUFFER
+  if (_use_fbtft) {
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
+    if ((x & 1) || (w & 1)) {
+      uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+      for (; h > 0; h--) {
+        uint16_t color = RGB14tocolor565(r, g, b);
+        uint16_t *pfbPixel = pfbPixel_row;
+        for (int i = 0; i < w; i++) {
+          *pfbPixel++ = color;
         }
-        endWrite16BitColors();
+        r += dr;
+        g += dg;
+        b += db;
+        pfbPixel_row += _width;
+      }
+    } else {
+      // Horizontal is even number so try 32 bit writes instead
+      uint32_t *pfbPixel_row =
+          (uint32_t *)((uint16_t *)&_pfbtft[y * _width + x]);
+      w = w / 2; // only iterate half the times
+      for (; h > 0; h--) {
+        uint32_t *pfbPixel = pfbPixel_row;
+        uint16_t color = RGB14tocolor565(r, g, b);
+        uint32_t color32 = (color << 16) | color;
+        for (int i = 0; i < w; i++) {
+          *pfbPixel++ = color32;
+        }
+        pfbPixel_row += (_width / 2);
+        r += dr;
+        g += dg;
+        b += db;
+      }
     }
+  } else
+#endif
+  {
+      setAddr(x, y, x + w - 1, y + h - 1);
+      beginWrite16BitColors();
+      for (y = h; y > 0; y--) {
+          uint16_t color = RGB14tocolor565(r, g, b);
+
+          for (x = w; x > 1; x--) {
+              write16BitColor(color);
+          }
+          write16BitColor(color);
+          r += dr;
+          g += dg;
+          b += db;
+      }
+      endWrite16BitColors();
+  }
 }
 
 // fillRectHGradient	- fills area with horizontal gradient
@@ -2636,25 +2673,46 @@ void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int
     r = r1;
     g = g1;
     b = b1;
-    {
-        setAddr(x, y, x + w - 1, y + h - 1);
-        beginWrite16BitColors();
-        for (y = h; y > 0; y--) {
-            for (x = w; x > 1; x--) {
-                color = RGB14tocolor565(r, g, b);
-                write16BitColor(color);
-                r += dr;
-                g += dg;
-                b += db;
-            }
-            color = RGB14tocolor565(r, g, b);
-            write16BitColor(color);
-            r = r1;
-            g = g1;
-            b = b1;
-        }
-        endWrite16BitColors();
+    
+#ifdef ENABLE_ILI9341_FRAMEBUFFER
+  if (_use_fbtft) {
+    //updateChangedRange(
+    //    x, y, w, h); // update the range of the screen that has been changed;
+    uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+    for (; h > 0; h--) {
+      uint16_t *pfbPixel = pfbPixel_row;
+      for (int i = 0; i < w; i++) {
+        *pfbPixel++ = RGB14tocolor565(r, g, b);
+        r += dr;
+        g += dg;
+        b += db;
+      }
+      pfbPixel_row += _width;
+      r = r1;
+      g = g1;
+      b = b1;
     }
+  } else
+#endif
+  {
+      setAddr(x, y, x + w - 1, y + h - 1);
+      beginWrite16BitColors();
+      for (y = h; y > 0; y--) {
+          for (x = w; x > 1; x--) {
+              color = RGB14tocolor565(r, g, b);
+              write16BitColor(color);
+              r += dr;
+              g += dg;
+              b += db;
+          }
+          color = RGB14tocolor565(r, g, b);
+          write16BitColor(color);
+          r = r1;
+          g = g1;
+          b = b1;
+      }
+      endWrite16BitColors();
+  }
 }
 
 // fillScreenVGradient - fills screen with vertical gradient
