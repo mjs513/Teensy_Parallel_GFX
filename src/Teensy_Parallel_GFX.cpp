@@ -2586,7 +2586,7 @@ void Teensy_Parallel_GFX::fillRectVGradient(int16_t x, int16_t y, int16_t w, int
     g = g1;
     b = b1;
 
-#ifdef ENABLE_ILI9341_FRAMEBUFFER
+#ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
     //updateChangedRange(
     //    x, y, w, h); // update the range of the screen that has been changed;
@@ -2655,7 +2655,7 @@ void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int
     g = g1;
     b = b1;
     
-#ifdef ENABLE_ILI9341_FRAMEBUFFER
+#ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
     //updateChangedRange(
     //    x, y, w, h); // update the range of the screen that has been changed;
