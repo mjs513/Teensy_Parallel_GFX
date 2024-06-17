@@ -2416,6 +2416,23 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
     }
     // Serial.printf("WR8C: %d %d %d %d %x- %d %d\n", x, y, w, h, (uint32_t)pixels,
     // x_clip_right, x_clip_left);
+#ifdef ENABLE_FRAMEBUFFER
+  if (_use_fbtft) {
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
+    uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+    for (; h > 0; h--) {
+      pixels += x_clip_left;
+      uint16_t *pfbPixel = pfbPixel_row;
+      for (int i = 0; i < w; i++) {
+        *pfbPixel++ = palette[*pixels++];
+      }
+      pixels += x_clip_right;
+      pfbPixel_row += _width;
+    }
+    return;
+  }
+#endif
 
     setAddr(x, y, x + w - 1, y + h - 1);
     beginWrite16BitColors();
@@ -2533,6 +2550,32 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
 
     const uint8_t *pixels_row_start =
         pixels; // remember our starting position offset into row
+
+#ifdef ENABLE_FRAMEBUFFER
+  if (_use_fbtft) {
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
+    uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+    for (; h > 0; h--) {
+      uint16_t *pfbPixel = pfbPixel_row;
+      pixels = pixels_row_start;            // setup for this row
+      uint8_t pixel_shift = row_shift_init; // Setup mask
+
+      for (int i = 0; i < w; i++) {
+        *pfbPixel++ = palette[((*pixels) >> pixel_shift) & pixel_bit_mask];
+        if (!pixel_shift) {
+          pixel_shift = 8 - bits_per_pixel; // setup next mask
+          pixels++;
+        } else {
+          pixel_shift -= bits_per_pixel;
+        }
+      }
+      pfbPixel_row += _width;
+      pixels_row_start += count_of_bytes_per_row;
+    }
+    return;
+  }
+#endif
 
     setAddr(x, y, x + w - 1, y + h - 1);
     beginWrite16BitColors();
