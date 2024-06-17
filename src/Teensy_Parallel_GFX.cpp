@@ -2418,8 +2418,8 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
     // x_clip_right, x_clip_left);
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    updateChangedRange(
-        x, y, w, h); // update the range of the screen that has been changed;
+    //updateChangedRange(
+    //    x, y, w, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
     for (; h > 0; h--) {
       pixels += x_clip_left;
@@ -2553,8 +2553,8 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
 
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    updateChangedRange(
-        x, y, w, h); // update the range of the screen that has been changed;
+    //updateChangedRange(
+    //    x, y, w, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
     for (; h > 0; h--) {
       uint16_t *pfbPixel = pfbPixel_row;
