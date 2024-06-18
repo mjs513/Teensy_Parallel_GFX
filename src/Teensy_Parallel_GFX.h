@@ -135,17 +135,16 @@ class Teensy_Parallel_GFX : public Print {
   public:
     Teensy_Parallel_GFX(int16_t w, int16_t h);
     void pushPixels16bit(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
-    void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2){};
+    void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
 
     virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {};
     virtual void beginWrite16BitColors() {};
     virtual void write16BitColor(uint16_t color) {};
     virtual void endWrite16BitColors() {};
     virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
-    virtual void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {};
+    virtual void readRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {};
 
     virtual void setRotation(uint8_t r) {};
-       
 
     // setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
     // Drawing is also restricted to the bounds of the display
@@ -229,11 +228,13 @@ class Teensy_Parallel_GFX : public Print {
     void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
     void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
     void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+    // Added functions to read pixel data...
+    uint16_t readPixel(int16_t x, int16_t y);
+    void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
     void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors);
-    void writeSubImageRect(int16_t x, int16_t y, int16_t w, int16_t h, 
-        int16_t image_offset_x, int16_t image_offset_y, int16_t image_width, 
-        int16_t image_height, const uint16_t *pcolors);
-
+    void writeSubImageRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                           int16_t image_offset_x, int16_t image_offset_y, int16_t image_width,
+                           int16_t image_height, const uint16_t *pcolors);
 
     virtual size_t write(uint8_t);
     virtual size_t write(const uint8_t *buffer, size_t size);
@@ -271,15 +272,15 @@ class Teensy_Parallel_GFX : public Print {
     // added support for scrolling text area
     // https://github.com/vitormhenrique/ILI9488_t3
     // Discussion regarding this optimized version:
-      //http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9488-%28320x240-TFT-color-display%29-library
-    //	
+    // http://forum.pjrc.com/threads/26305-Highly-optimized-ILI9488-%28320x240-TFT-color-display%29-library
+    //
     void setScrollTextArea(int16_t x, int16_t y, int16_t w, int16_t h);
     void setScrollBackgroundColor(uint16_t color);
     void enableScroll(void);
     void disableScroll(void);
     void scrollTextArea(uint8_t scrollSize);
     void resetScrollBackgroundColor(uint16_t color);
-	
+
     void drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t color);
     void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size_x, uint8_t size_y);
     void inline drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size) { drawChar(x, y, c, color, bg, size); }
@@ -343,13 +344,13 @@ class Teensy_Parallel_GFX : public Print {
                            uint16_t color1, uint16_t color2);
     void fillScreenVGradient(uint16_t color1, uint16_t color2);
     void fillScreenHGradient(uint16_t color1, uint16_t color2);
-  void setFrameBuffer(uint16_t *frame_buffer);
-  uint8_t
-  useFrameBuffer(boolean b);  // use the frame buffer?  First call will allocate
-  void freeFrameBuffer(void); // explicit call to release the buffer
-  void updateScreen(void);    // call to say update the screen now.
-#ifdef ENABLE_FRAMEBUFFER  
-  uint16_t *getFrameBuffer() { return _pfbtft; }
+    void setFrameBuffer(uint16_t *frame_buffer);
+    uint8_t
+    useFrameBuffer(boolean b);  // use the frame buffer?  First call will allocate
+    void freeFrameBuffer(void); // explicit call to release the buffer
+    void updateScreen(void);    // call to say update the screen now.
+#ifdef ENABLE_FRAMEBUFFER
+    uint16_t *getFrameBuffer() { return _pfbtft; }
 #endif
 
   protected:
@@ -397,15 +398,15 @@ class Teensy_Parallel_GFX : public Print {
 
     uint32_t padX;
     int16_t scroll_x, scroll_y, scroll_width, scroll_height;
-    boolean scrollEnable,isWritingScrollArea; // If set, 'wrap' text at right edge of display
+    boolean scrollEnable, isWritingScrollArea; // If set, 'wrap' text at right edge of display
 
 #ifdef ENABLE_FRAMEBUFFER
-  // Add support for optional frame buffer
-  uint16_t *_pfbtft;              // Optional Frame buffer
-  uint8_t _use_fbtft;             // Are we in frame buffer mode?
-  uint16_t *_we_allocated_buffer; // We allocated the buffer;
+    // Add support for optional frame buffer
+    uint16_t *_pfbtft;              // Optional Frame buffer
+    uint8_t _use_fbtft;             // Are we in frame buffer mode?
+    uint16_t *_we_allocated_buffer; // We allocated the buffer;
 #endif
-    // GFX Font support
+                                    // GFX Font support
     const GFXfont *gfxFont = nullptr;
     int8_t _gfxFont_min_yOffset = 0;
 

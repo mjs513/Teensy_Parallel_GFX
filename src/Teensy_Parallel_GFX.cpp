@@ -171,11 +171,67 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
 // Not sure if better here to check flag or check existence of buffer.
 // Will go by buffer as maybe can do interesting things?
 #ifdef ENABLE_FRAMEBUFFER
-  if (_use_fbtft) {
-    writeRect(0, 0, _width, _height, _pfbtft);
-  }
-  //clearChangedRange(); // make sure the dirty range is updated.
-   //memset(_pfbtft, 0, CBALLOC); //leave for now until changed range implemented
+    // bugbug: copy of write rect minus frame buffer
+    // can cleanup.
+    if (!_use_fbtft)
+        return; // bail
+
+    int16_t x = 0;
+    int16_t y = 0;
+    int16_t w = _width;
+    int16_t h = _height;
+    const uint16_t *pcolors = _pfbtft;
+
+    x += _originx;
+    y += _originy;
+    uint16_t x_clip_left = 0;  // How many entries at start of colors to skip at start of row
+    uint16_t x_clip_right = 0; // how many color entries to skip at end of row for clipping
+    // Rectangular clipping
+
+    // See if the whole thing out of bounds...
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1))
+        return;
+
+    // In these cases you can not do simple clipping, as we need to synchronize the colors array with the
+    // We can clip the height as when we get to the last visible we don't have to go any farther.
+    // also maybe starting y as we will advance the color array.
+    if (y < _displayclipy1) {
+        int dy = (_displayclipy1 - y);
+        h -= dy;
+        pcolors += (dy * w); // Advance color array to
+        y = _displayclipy1;
+    }
+
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+    // For X see how many items in color array to skip at start of row and likewise end of row
+    if (x < _displayclipx1) {
+        x_clip_left = _displayclipx1 - x;
+        w -= x_clip_left;
+        x = _displayclipx1;
+    }
+    if ((x + w - 1) >= _displayclipx2) {
+        x_clip_right = w;
+        w = _displayclipx2 - x;
+        x_clip_right -= w;
+    }
+
+    setAddr(x, y, x + w - 1, y + h - 1);
+    beginWrite16BitColors();
+    for (y = h; y > 0; y--) {
+        pcolors += x_clip_left;
+        for (x = w; x > 1; x--) {
+            write16BitColor(*pcolors++);
+        }
+        write16BitColor(*pcolors++);
+        pcolors += x_clip_right;
+    }
+    endWrite16BitColors();
+    // clearChangedRange(); // make sure the dirty range is updated.
+    // memset(_pfbtft, 0, CBALLOC); //leave for now until changed range implemented
 
 #endif
 }
@@ -2754,58 +2810,86 @@ void Teensy_Parallel_GFX::fillScreenHGradient(uint16_t color1, uint16_t color2) 
 
 
 // Now lets see if we can writemultiple pixels
-void Teensy_Parallel_GFX::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors)
-{
-	if (x == CENTER) x = (_width - w) / 2;
-	if (y == CENTER) y = (_height - h) / 2;
-	x+=_originx;
-	y+=_originy;
-	uint16_t x_clip_left = 0;  // How many entries at start of colors to skip at start of row
-	uint16_t x_clip_right = 0;    // how many color entries to skip at end of row for clipping
-	// Rectangular clipping 
+void Teensy_Parallel_GFX::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors) {
+    if (x == CENTER)
+        x = (_width - w) / 2;
+    if (y == CENTER)
+        y = (_height - h) / 2;
+    x += _originx;
+    y += _originy;
+    uint16_t x_clip_left = 0;  // How many entries at start of colors to skip at start of row
+    uint16_t x_clip_right = 0; // how many color entries to skip at end of row for clipping
+    // Rectangular clipping
 
-	// See if the whole thing out of bounds...
-	if((x >= _displayclipx2) || (y >= _displayclipy2)) return;
-	if (((x+w) <= _displayclipx1) || ((y+h) <= _displayclipy1)) return;
+    // See if the whole thing out of bounds...
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1))
+        return;
 
-	// In these cases you can not do simple clipping, as we need to synchronize the colors array with the
-	// We can clip the height as when we get to the last visible we don't have to go any farther. 
-	// also maybe starting y as we will advance the color array. 
- 	if(y < _displayclipy1) {
- 		int dy = (_displayclipy1 - y);
- 		h -= dy; 
- 		pcolors += (dy*w); // Advance color array to 
- 		y = _displayclipy1; 	
- 	}
+    // In these cases you can not do simple clipping, as we need to synchronize the colors array with the
+    // We can clip the height as when we get to the last visible we don't have to go any farther.
+    // also maybe starting y as we will advance the color array.
+    if (y < _displayclipy1) {
+        int dy = (_displayclipy1 - y);
+        h -= dy;
+        pcolors += (dy * w); // Advance color array to
+        y = _displayclipy1;
+    }
 
-	if((y + h - 1) >= _displayclipy2) h = _displayclipy2 - y;
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
 
-	// For X see how many items in color array to skip at start of row and likewise end of row 
-	if(x < _displayclipx1) {
-		x_clip_left = _displayclipx1-x; 
-		w -= x_clip_left; 
-		x = _displayclipx1; 	
-	}
-	if((x + w - 1) >= _displayclipx2) {
-		x_clip_right = w;
-		w = _displayclipx2  - x;
-		x_clip_right -= w; 
-	} 
+    // For X see how many items in color array to skip at start of row and likewise end of row
+    if (x < _displayclipx1) {
+        x_clip_left = _displayclipx1 - x;
+        w -= x_clip_left;
+        x = _displayclipx1;
+    }
+    if ((x + w - 1) >= _displayclipx2) {
+        x_clip_right = w;
+        w = _displayclipx2 - x;
+        x_clip_right -= w;
+    }
 
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        // updateChangedRange(
+        //     x, y, w, h); // update the range of the screen that has been changed;
+        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
 
-  setAddr(x, y, x+w-1, y+h-1);
-  beginWrite16BitColors();
-	for(y=h; y>0; y--) {
-		pcolors += x_clip_left;
-		for(x=w; x>1; x--) {
-			write16BitColor(*pcolors++);
-		}
-		write16BitColor(*pcolors++);
-		pcolors += x_clip_right;
-	}
-  endWrite16BitColors();
-  
+        for (; h > 0; h--) {
+            uint16_t *pfbPixel = pfbPixel_row;
+            pcolors += x_clip_left;
+            for (int i = 0; i < w; i++) {
+                if (*pfbPixel != *pcolors) {
+                    // pixel changed
+                    *pfbPixel = *pcolors;
+                }
+                pfbPixel++;
+                pcolors++;
+            }
+            pfbPixel_row += _width;
+            pcolors += x_clip_right;
+            y++;
+        }
+        return;
+    }
+#endif
+
+    setAddr(x, y, x + w - 1, y + h - 1);
+    beginWrite16BitColors();
+    for (y = h; y > 0; y--) {
+        pcolors += x_clip_left;
+        for (x = w; x > 1; x--) {
+            write16BitColor(*pcolors++);
+        }
+        write16BitColor(*pcolors++);
+        pcolors += x_clip_right;
+    }
+    endWrite16BitColors();
 }
+
 
 
 // Now lets see if we can writemultiple pixels
@@ -3030,3 +3114,39 @@ void Teensy_Parallel_GFX::disableScroll(void){
 void Teensy_Parallel_GFX::resetScrollBackgroundColor(uint16_t color){
 	scrollbgcolor=color;
 }	
+
+uint16_t Teensy_Parallel_GFX::readPixel(int16_t x, int16_t y) {
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        x += _originx;
+        y += _originy;
+        return _pfbtft[y * _width + x];
+    }
+#endif
+    uint16_t color;
+    readRectFlexIO(x, y, 1, 1, &color);
+    return color;
+}
+
+void Teensy_Parallel_GFX::readRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                                   uint16_t *pcolors) {
+    // Use our Origin.
+    x += _originx;
+    y += _originy;
+    // BUGBUG:: Should add some validation of X and Y
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+        for (; h > 0; h--) {
+            uint16_t *pfbPixel = pfbPixel_row;
+            for (int i = 0; i < w; i++) {
+                *pcolors++ = *pfbPixel++;
+            }
+            pfbPixel_row += _width;
+        }
+        return;
+    }
+#endif
+    readRectFlexIO(x, y, w, h, pcolors);
+}
