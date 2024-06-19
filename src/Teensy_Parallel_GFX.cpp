@@ -144,7 +144,7 @@ uint8_t Teensy_Parallel_GFX::useFrameBuffer(
                              ~((uintptr_t)(31)));
     }
     _use_fbtft = 1;
-    //clearChangedRange(); // make sure the dirty range is updated.
+    clearChangedRange(); // make sure the dirty range is updated.
   } else
     _use_fbtft = 0;
 
@@ -230,7 +230,7 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
         pcolors += x_clip_right;
     }
     endWrite16BitColors();
-    // clearChangedRange(); // make sure the dirty range is updated.
+    clearChangedRange(); // make sure the dirty range is updated.
     // memset(_pfbtft, 0, CBALLOC); //leave for now until changed range implemented
 
 #endif
@@ -772,9 +772,9 @@ void Teensy_Parallel_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-      //updateChangedRange(
-      //    x, y, 6 * size_x,
-      //    8 * size_y); // update the range of the screen that has been changed;
+      updateChangedRange(
+          x, y, 6 * size_x,
+          8 * size_y); // update the range of the screen that has been changed;
       uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
       for (yc = 0; (yc < 8) && (y < _displayclipy2); yc++) {
         for (yr = 0; (yr < size_y) && (y < _displayclipy2); yr++) {
@@ -1180,12 +1180,12 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
         */
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-      //updateChangedRange(
-      //    start_x,
-      //    start_y); // update the range of the screen that has been changed;
-      //updateChangedRange(
-      //    end_x,
-      //    end_y); // update the range of the screen that has been changed;
+      updateChangedRange(
+          start_x,
+          start_y); // update the range of the screen that has been changed;
+      updateChangedRange(
+          end_x,
+          end_y); // update the range of the screen that has been changed;
       uint16_t *pfbPixel_row = &_pfbtft[start_y * _width + start_x];
       uint16_t *pfbPixel;
       int screen_y = start_y;
@@ -1924,12 +1924,12 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
     #ifdef ENABLE_FRAMEBUFFER
         if (_use_fbtft) {
           // lets try to output the values directly...
-          //updateChangedRange(
-          //    x_start,
-          //    y_start); // update the range of the screen that has been changed;
-          //updateChangedRange(
-          //    x_end,
-           //   y_end); // update the range of the screen that has been changed;
+          updateChangedRange(
+              x_start,
+              y_start); // update the range of the screen that has been changed;
+          updateChangedRange(
+              x_end,
+              y_end); // update the range of the screen that has been changed;
           uint16_t *pfbPixel_row = &_pfbtft[y_start * _width + x_start];
           uint16_t *pfbPixel;
           // First lets fill in the top parts above the actual rectangle...
@@ -2474,8 +2474,8 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
     // x_clip_right, x_clip_left);
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, w, h); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
     for (; h > 0; h--) {
       pixels += x_clip_left;
@@ -2609,8 +2609,8 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
 
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, w, h); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
     for (; h > 0; h--) {
       uint16_t *pfbPixel = pfbPixel_row;
@@ -2687,8 +2687,8 @@ void Teensy_Parallel_GFX::fillRectVGradient(int16_t x, int16_t y, int16_t w, int
 
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, w, h); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
     for (; h > 0; h--) {
       uint16_t color = RGB14tocolor565(r, g, b);
@@ -2756,8 +2756,8 @@ void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int
     
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, w, h); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
     for (; h > 0; h--) {
       uint16_t *pfbPixel = pfbPixel_row;
@@ -2854,8 +2854,8 @@ void Teensy_Parallel_GFX::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, 
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        // updateChangedRange(
-        //     x, y, w, h); // update the range of the screen that has been changed;
+        updateChangedRange(
+             x, y, w, h); // update the range of the screen that has been changed;
         uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
 
         for (; h > 0; h--) {
@@ -2970,8 +2970,8 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
   
   #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, w, h); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, w, h); // update the range of the screen that has been changed;
     //if ((x & 1) || (w & 1)) {
       uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
       for (; h > 0; h--) {
@@ -3002,8 +3002,8 @@ void Teensy_Parallel_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y); // update the range of the screen that has been changed;
     _pfbtft[y * _width + x] = color;
 
   } else
@@ -3030,8 +3030,8 @@ void Teensy_Parallel_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_
 
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, 1, h); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, 1, h); // update the range of the screen that has been changed;
     uint16_t *pfbPixel = &_pfbtft[y * _width + x];
     while (h--) {
       *pfbPixel = color;
@@ -3063,8 +3063,8 @@ void Teensy_Parallel_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_
 
 #ifdef ENABLE_FRAMEBUFFER
   if (_use_fbtft) {
-    //updateChangedRange(
-    //    x, y, w, 1); // update the range of the screen that has been changed;
+    updateChangedRange(
+        x, y, w, 1); // update the range of the screen that has been changed;
       uint16_t *pfbPixel = &_pfbtft[y * _width + x];
       while (w--) {
         *pfbPixel++ = color;

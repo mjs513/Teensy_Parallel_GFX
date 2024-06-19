@@ -353,7 +353,7 @@ class Teensy_Parallel_GFX : public Print {
     uint16_t *getFrameBuffer() { return _pfbtft; }
 #endif
 
-  protected:
+protected:
     int16_t WIDTH;
     int16_t HEIGHT;
     int16_t _width, _height;
@@ -401,12 +401,48 @@ class Teensy_Parallel_GFX : public Print {
     boolean scrollEnable, isWritingScrollArea; // If set, 'wrap' text at right edge of display
 
 #ifdef ENABLE_FRAMEBUFFER
-    // Add support for optional frame buffer
-    uint16_t *_pfbtft;              // Optional Frame buffer
-    uint8_t _use_fbtft;             // Are we in frame buffer mode?
-    uint16_t *_we_allocated_buffer; // We allocated the buffer;
+  // Add support for optional frame buffer
+  uint16_t *_pfbtft;              // Optional Frame buffer
+  uint8_t _use_fbtft;             // Are we in frame buffer mode?
+  uint16_t *_we_allocated_buffer; // We allocated the buffer;
+  int16_t _changed_min_x, _changed_max_x, _changed_min_y, _changed_max_y;
+  bool _updateChangedAreasOnly = false; // current default off,
+
+  void clearChangedRange() {
+    _changed_min_x = 0x7fff;
+    _changed_max_x = -1;
+    _changed_min_y = 0x7fff;
+    _changed_max_y = -1;
+  }
+
+  void updateChangedRange(int16_t x, int16_t y, int16_t w, int16_t h)
+      __attribute__((always_inline)) {
+    if (x < _changed_min_x)
+      _changed_min_x = x;
+    if (y < _changed_min_y)
+      _changed_min_y = y;
+    x += w - 1;
+    y += h - 1;
+    if (x > _changed_max_x)
+      _changed_max_x = x;
+    if (y > _changed_max_y)
+      _changed_max_y = y;
+    //if (Serial)Serial.printf("UCR(%d %d %d %d) min:%d %d max:%d %d\n", w, y, w, h, _changed_min_x, _changed_min_y, _changed_max_x, _changed_max_y);
+  }
+
+  // could combine with above, but avoids the +-...
+  void updateChangedRange(int16_t x, int16_t y) __attribute__((always_inline)) {
+    if (x < _changed_min_x)
+      _changed_min_x = x;
+    if (y < _changed_min_y)
+      _changed_min_y = y;
+    if (x > _changed_max_x)
+      _changed_max_x = x;
+    if (y > _changed_max_y)
+      _changed_max_y = y;
+  }
 #endif
-                                    // GFX Font support
+             // GFX Font support
     const GFXfont *gfxFont = nullptr;
     int8_t _gfxFont_min_yOffset = 0;
 
