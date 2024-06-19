@@ -236,6 +236,28 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
 #endif
 }
 
+bool Teensy_Parallel_GFX::Teensy_Parallel_GFX::updateScreenAsync(bool update_cont) 
+{
+    if (update_cont) return false; // not supported yet.
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        return writeRectAsyncFlexIO(0, 0, _width, _height, _pfbtft);
+    }
+#endif
+    return false; // bail
+}
+
+void Teensy_Parallel_GFX::Teensy_Parallel_GFX::waitUpdateAsyncComplete()
+{
+    while (writeRectAsyncActiveFlexIO()) {}
+}
+
+void Teensy_Parallel_GFX::Teensy_Parallel_GFX::endUpdateAsync()
+{
+    // Currently not supporting this.
+}
+
+
 
 void Teensy_Parallel_GFX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
     drawFastHLine(x, y, w, color);

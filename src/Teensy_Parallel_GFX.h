@@ -143,7 +143,8 @@ class Teensy_Parallel_GFX : public Print {
     virtual void endWrite16BitColors() {};
     virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
     virtual void readRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {};
-
+    virtual bool writeRectAsyncFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {return false;}
+    virtual bool writeRectAsyncActiveFlexIO() { return false; }
     virtual void setRotation(uint8_t r) {};
 
     // setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
@@ -345,12 +346,21 @@ class Teensy_Parallel_GFX : public Print {
     void fillScreenVGradient(uint16_t color1, uint16_t color2);
     void fillScreenHGradient(uint16_t color1, uint16_t color2);
     void setFrameBuffer(uint16_t *frame_buffer);
-    uint8_t
-    useFrameBuffer(boolean b);  // use the frame buffer?  First call will allocate
+    uint8_t useFrameBuffer(boolean b);  // use the frame buffer?  First call will allocate
     void freeFrameBuffer(void); // explicit call to release the buffer
     void updateScreen(void);    // call to say update the screen now.
+    bool updateScreenAsync(bool update_cont = false); // call to say update the
+                                                    // screen optinoally turn
+                                                    // into continuous mode.
+    void waitUpdateAsyncComplete(void);
+    void endUpdateAsync(); // Turn of the continueous mode fla
+    boolean asyncUpdateActive(void);
+
 #ifdef ENABLE_FRAMEBUFFER
     uint16_t *getFrameBuffer() { return _pfbtft; }
+
+  
+
 #endif
 
 protected:
