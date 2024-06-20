@@ -142,6 +142,7 @@ class Teensy_Parallel_GFX : public Print {
     virtual void write16BitColor(uint16_t color) {};
     virtual void endWrite16BitColors() {};
     virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
+    virtual void fillRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {};
     virtual void readRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {};
     virtual bool writeRectAsyncFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {return false;}
     virtual bool writeRectAsyncActiveFlexIO() { return false; }
