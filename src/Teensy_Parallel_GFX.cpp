@@ -219,7 +219,8 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
         x_clip_right -= w;
     }
 
-    setAddr(x, y, x + w - 1, y + h - 1);
+    writeRectFlexIO(x, y, w, h,  pcolors);
+/*    setAddr(x, y, x + w - 1, y + h - 1);
     beginWrite16BitColors();
     for (y = h; y > 0; y--) {
         pcolors += x_clip_left;
@@ -230,6 +231,7 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
         pcolors += x_clip_right;
     }
     endWrite16BitColors();
+    */
     clearChangedRange(); // make sure the dirty range is updated.
     // memset(_pfbtft, 0, CBALLOC); //leave for now until changed range implemented
 
@@ -3024,6 +3026,9 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
   } else
 #endif
   {
+    #if 1
+    fillRectFlexIO(x, y, w, h, color);
+    #else
     setAddr(x, y, x+w-1, y+h-1);
     beginWrite16BitColors();
     uint32_t count_pixels = w * h;
@@ -3031,6 +3036,7 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
       write16BitColor(color);
     }
     endWrite16BitColors();
+    #endif
   }
 }
 
@@ -3048,12 +3054,8 @@ void Teensy_Parallel_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
   } else
 #endif
 	{
-		//setAddr(x, y, x, y);
-    uint16_t pcolors[1];
-    pcolors[0] = color;
-    //setAddr(x, y, x, y);
-		write16BitColor(x, y, x, y, pcolors, 1);
-  }
+		writeRectFlexIO(x, y, 1, 1, &color);
+    }
 }
 
 void Teensy_Parallel_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
