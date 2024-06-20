@@ -2958,6 +2958,23 @@ void Teensy_Parallel_GFX::writeSubImageRect(int16_t x, int16_t y, int16_t w, int
     x_clip_right -= w; 
   } 
 
+  #ifdef ENABLE_FRAMEBUFFER
+  if (_use_fbtft) {
+    uint16_t * pfbPixel_row = &_pfbtft[ y*_width + x];
+    for (;h>0; h--) {
+      const uint16_t *pcolors_row = pcolors; 
+      uint16_t * pfbPixel = pfbPixel_row;
+      for (int i = 0 ;i < w; i++) {
+        *pfbPixel++ = *pcolors++;
+      }
+      pfbPixel_row += _width;
+      pcolors = pcolors_row + image_width;
+    }
+    return; 
+  }
+  #endif
+
+
   //Serial.printf("\t(%d %d %d %d : %d %d %d %d : %p)\n", x, y, w, h, image_offset_x, image_offset_y, image_width, image_height, pcolors);
   setAddr(x, y, x+w-1, y+h-1);
   beginWrite16BitColors();
