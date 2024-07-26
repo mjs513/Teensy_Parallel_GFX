@@ -176,6 +176,11 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
     if (!_use_fbtft)
         return; // bail
 
+    if (_standard && !_updateChangedAreasOnly) {
+        writeRectFlexIO(0, 0, _width, _height,  _pfbtft);
+        return;
+    }
+
     int16_t x = 0;
     int16_t y = 0;
     int16_t w = _width;
@@ -218,22 +223,25 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
         w = _displayclipx2 - x;
         x_clip_right -= w;
     }
+    // we need to do a sub-image rectangle
 
-    writeRectFlexIO(x, y, w, h,  pcolors);
-/*    setAddr(x, y, x + w - 1, y + h - 1);
+    //Serial.printf("updateScreen call writeRectFlexIO(%d, %d, %d, %d, %p)\n", x, y, w, h, pcolors);
+    //writeRectFlexIO(x, y, w, h,  pcolors);
+    setAddr(x, y, x+w-1, y+h-1);
     beginWrite16BitColors();
-    for (y = h; y > 0; y--) {
-        pcolors += x_clip_left;
-        for (x = w; x > 1; x--) {
-            write16BitColor(*pcolors++);
+    const uint16_t *pcolors_row = pcolors; 
+    for(y=h; y>0; y--) {
+        pcolors = pcolors_row;
+        for(x=w; x>1; x--) {
+          write16BitColor(*pcolors++);
         }
         write16BitColor(*pcolors++);
-        pcolors += x_clip_right;
+        pcolors_row += _width;
     }
     endWrite16BitColors();
-    */
+
+
     clearChangedRange(); // make sure the dirty range is updated.
-    // memset(_pfbtft, 0, CBALLOC); //leave for now until changed range implemented
 
 #endif
 }
@@ -3014,6 +3022,7 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
     updateChangedRange(
         x, y, w, h); // update the range of the screen that has been changed;
     //if ((x & 1) || (w & 1)) {
+    //Serial.printf("Fillrect(%d, %d, %d, %d, %x) %d %d\n", x, y, w, h, color, _originx, _originy);
       uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
       for (; h > 0; h--) {
         uint16_t *pfbPixel = pfbPixel_row;

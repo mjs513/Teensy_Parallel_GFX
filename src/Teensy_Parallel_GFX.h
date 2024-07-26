@@ -427,6 +427,10 @@ protected:
     _changed_max_y = -1;
   }
 
+  void updateChangedAreasOnly(bool updateChangedOnly) {
+    _updateChangedAreasOnly = updateChangedOnly;
+  }
+
   void updateChangedRange(int16_t x, int16_t y, int16_t w, int16_t h)
       __attribute__((always_inline)) {
     if (x < _changed_min_x)
