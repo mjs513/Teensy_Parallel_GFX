@@ -141,11 +141,11 @@ class Teensy_Parallel_GFX : public Print {
     virtual void beginWrite16BitColors() {};
     virtual void write16BitColor(uint16_t color) {};
     virtual void endWrite16BitColors() {};
-    //virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
+    // virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
     virtual void writeRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors) {};
     virtual void fillRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {};
     virtual void readRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {};
-    virtual bool writeRectAsyncFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {return false;}
+    virtual bool writeRectAsyncFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) { return false; }
     virtual bool writeRectAsyncActiveFlexIO() { return false; }
     virtual void setRotation(uint8_t r) {};
 
@@ -256,7 +256,7 @@ class Teensy_Parallel_GFX : public Print {
                        int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h);
     void getTextBounds(const String &str, int16_t x, int16_t y,
                        int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h);
-    int16_t strPixelLen(const char *str, uint16_t cb=0xffff);
+    int16_t strPixelLen(const char *str, uint16_t cb = 0xffff);
 
     uint32_t fetchpixel(const uint8_t *p, uint32_t index, uint32_t x);
     void drawFontPixel(uint8_t alpha, uint32_t x, uint32_t y);
@@ -348,12 +348,12 @@ class Teensy_Parallel_GFX : public Print {
     void fillScreenVGradient(uint16_t color1, uint16_t color2);
     void fillScreenHGradient(uint16_t color1, uint16_t color2);
     void setFrameBuffer(uint16_t *frame_buffer);
-    uint8_t useFrameBuffer(boolean b);  // use the frame buffer?  First call will allocate
-    void freeFrameBuffer(void); // explicit call to release the buffer
-    void updateScreen(void);    // call to say update the screen now.
+    uint8_t useFrameBuffer(boolean b);                // use the frame buffer?  First call will allocate
+    void freeFrameBuffer(void);                       // explicit call to release the buffer
+    void updateScreen(void);                          // call to say update the screen now.
     bool updateScreenAsync(bool update_cont = false); // call to say update the
-                                                    // screen optinoally turn
-                                                    // into continuous mode.
+                                                      // screen optinoally turn
+                                                      // into continuous mode.
     void waitUpdateAsyncComplete(void);
     void endUpdateAsync(); // Turn of the continueous mode fla
     boolean asyncUpdateActive(void);
@@ -361,11 +361,9 @@ class Teensy_Parallel_GFX : public Print {
 #ifdef ENABLE_FRAMEBUFFER
     uint16_t *getFrameBuffer() { return _pfbtft; }
 
-  
-
 #endif
 
-protected:
+  protected:
     int16_t WIDTH;
     int16_t HEIGHT;
     int16_t _width, _height;
@@ -413,52 +411,52 @@ protected:
     boolean scrollEnable, isWritingScrollArea; // If set, 'wrap' text at right edge of display
 
 #ifdef ENABLE_FRAMEBUFFER
-  // Add support for optional frame buffer
-  uint16_t *_pfbtft;              // Optional Frame buffer
-  uint8_t _use_fbtft;             // Are we in frame buffer mode?
-  uint16_t *_we_allocated_buffer; // We allocated the buffer;
-  int16_t _changed_min_x, _changed_max_x, _changed_min_y, _changed_max_y;
-  bool _updateChangedAreasOnly = false; // current default off,
+    // Add support for optional frame buffer
+    uint16_t *_pfbtft;              // Optional Frame buffer
+    uint8_t _use_fbtft;             // Are we in frame buffer mode?
+    uint16_t *_we_allocated_buffer; // We allocated the buffer;
+    int16_t _changed_min_x, _changed_max_x, _changed_min_y, _changed_max_y;
+    bool _updateChangedAreasOnly = false; // current default off,
 
-  void clearChangedRange() {
-    _changed_min_x = 0x7fff;
-    _changed_max_x = -1;
-    _changed_min_y = 0x7fff;
-    _changed_max_y = -1;
-  }
+    void clearChangedRange() {
+        _changed_min_x = 0x7fff;
+        _changed_max_x = -1;
+        _changed_min_y = 0x7fff;
+        _changed_max_y = -1;
+    }
 
-  void updateChangedAreasOnly(bool updateChangedOnly) {
-    _updateChangedAreasOnly = updateChangedOnly;
-  }
+    void updateChangedAreasOnly(bool updateChangedOnly) {
+        _updateChangedAreasOnly = updateChangedOnly;
+    }
 
-  void updateChangedRange(int16_t x, int16_t y, int16_t w, int16_t h)
-      __attribute__((always_inline)) {
-    if (x < _changed_min_x)
-      _changed_min_x = x;
-    if (y < _changed_min_y)
-      _changed_min_y = y;
-    x += w - 1;
-    y += h - 1;
-    if (x > _changed_max_x)
-      _changed_max_x = x;
-    if (y > _changed_max_y)
-      _changed_max_y = y;
-    //if (Serial)Serial.printf("UCR(%d %d %d %d) min:%d %d max:%d %d\n", w, y, w, h, _changed_min_x, _changed_min_y, _changed_max_x, _changed_max_y);
-  }
+    void updateChangedRange(int16_t x, int16_t y, int16_t w, int16_t h)
+        __attribute__((always_inline)) {
+        if (x < _changed_min_x)
+            _changed_min_x = x;
+        if (y < _changed_min_y)
+            _changed_min_y = y;
+        x += w - 1;
+        y += h - 1;
+        if (x > _changed_max_x)
+            _changed_max_x = x;
+        if (y > _changed_max_y)
+            _changed_max_y = y;
+        // if (Serial)Serial.printf("UCR(%d %d %d %d) min:%d %d max:%d %d\n", w, y, w, h, _changed_min_x, _changed_min_y, _changed_max_x, _changed_max_y);
+    }
 
-  // could combine with above, but avoids the +-...
-  void updateChangedRange(int16_t x, int16_t y) __attribute__((always_inline)) {
-    if (x < _changed_min_x)
-      _changed_min_x = x;
-    if (y < _changed_min_y)
-      _changed_min_y = y;
-    if (x > _changed_max_x)
-      _changed_max_x = x;
-    if (y > _changed_max_y)
-      _changed_max_y = y;
-  }
+    // could combine with above, but avoids the +-...
+    void updateChangedRange(int16_t x, int16_t y) __attribute__((always_inline)) {
+        if (x < _changed_min_x)
+            _changed_min_x = x;
+        if (y < _changed_min_y)
+            _changed_min_y = y;
+        if (x > _changed_max_x)
+            _changed_max_x = x;
+        if (y > _changed_max_y)
+            _changed_max_y = y;
+    }
 #endif
-             // GFX Font support
+    // GFX Font support
     const GFXfont *gfxFont = nullptr;
     int8_t _gfxFont_min_yOffset = 0;
 
