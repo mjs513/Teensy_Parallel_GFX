@@ -43,30 +43,30 @@ void setup() {
   delay(1000);
 
   Serial.print(F("Lines                    "));
-  Serial.println(testLines(ILI9488_CYAN));
+  Serial.println(testLines(HX8357_CYAN));
   delay(1000);
   lcd.updateScreen();
 
   Serial.print(F("Horiz/Vert Lines         "));
-  Serial.println(testFastLines(ILI9488_RED, ILI9488_BLUE));
+  Serial.println(testFastLines(HX8357_RED, HX8357_BLUE));
   lcd.updateScreen();
   delay(1000);
 
   Serial.print(F("Rectangles (outline)     "));
-  Serial.println(testRects(ILI9488_GREEN));
+  Serial.println(testRects(HX8357_GREEN));
   lcd.updateScreen();
   delay(1000);
 
   Serial.print(F("Rectangles (filled)      "));
-  Serial.println(testFilledRects(ILI9488_YELLOW, ILI9488_MAGENTA));
+  Serial.println(testFilledRects(HX8357_YELLOW, HX8357_MAGENTA));
   lcd.updateScreen();
   delay(1000);
 
   Serial.print(F("Circles (filled)         "));
-  Serial.println(testFilledCircles(10, ILI9488_MAGENTA));
+  Serial.println(testFilledCircles(10, HX8357_MAGENTA));
 
   Serial.print(F("Circles (outline)        "));
-  Serial.println(testCircles(10, ILI9488_WHITE));
+  Serial.println(testCircles(10, HX8357_WHITE));
   lcd.updateScreen();
   delay(500);
 
@@ -104,17 +104,17 @@ void loop() {
 
 
 unsigned long testText() {
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   unsigned long start = micros();
   lcd.setCursor(0, 0);
-  lcd.setTextColor(ILI9488_WHITE);  lcd.setTextSize(1);
+  lcd.setTextColor(HX8357_WHITE);  lcd.setTextSize(1);
   lcd.println("Hello World!");
-  lcd.setTextColor(ILI9488_YELLOW); lcd.setTextSize(2);
+  lcd.setTextColor(HX8357_YELLOW); lcd.setTextSize(2);
   lcd.println(1234.56);
-  lcd.setTextColor(ILI9488_RED);    lcd.setTextSize(3);
+  lcd.setTextColor(HX8357_RED);    lcd.setTextSize(3);
   lcd.println(0xDEADBEEF, HEX);
   lcd.println();
-  lcd.setTextColor(ILI9488_GREEN);
+  lcd.setTextColor(HX8357_GREEN);
   lcd.setTextSize(5);
   lcd.println("Groop");
   lcd.setTextSize(2);
@@ -132,11 +132,11 @@ unsigned long testText() {
 
 unsigned long testFillScreen() {
   unsigned long start = micros();
-  lcd.fillScreen(ILI9488_BLACK);  delay(200);
-  lcd.fillScreen(ILI9488_RED);  delay(200);
-  lcd.fillScreen(ILI9488_GREEN);  delay(200);
-  lcd.fillScreen(ILI9488_BLUE);  delay(200);
-  lcd.fillScreen(ILI9488_BLACK);  delay(200);
+  lcd.fillScreen(HX8357_BLACK);  delay(200);
+  lcd.fillScreen(HX8357_RED);  delay(200);
+  lcd.fillScreen(HX8357_GREEN);  delay(200);
+  lcd.fillScreen(HX8357_BLUE);  delay(200);
+  lcd.fillScreen(HX8357_BLACK);  delay(200);
   return (micros() - start - 1000000);
 }
 
@@ -146,7 +146,7 @@ unsigned long testLines(uint16_t color) {
                 w = lcd.width(),
                 h = lcd.height();
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
 
   x1 = y1 = 0;
   y2    = h - 1;
@@ -157,7 +157,7 @@ unsigned long testLines(uint16_t color) {
   t     = micros() - start; // fillScreen doesn't count against timing
   lcd.updateScreen();
   delay(500);
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
 
   x1    = w - 1;
   y1    = 0;
@@ -170,7 +170,7 @@ unsigned long testLines(uint16_t color) {
   lcd.updateScreen();
   delay(500);
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
 
   x1    = 0;
   y1    = h - 1;
@@ -183,7 +183,7 @@ unsigned long testLines(uint16_t color) {
   lcd.updateScreen();
   delay(500);
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
 
   x1    = w - 1;
   y1    = h - 1;
@@ -202,7 +202,7 @@ unsigned long testFastLines(uint16_t color1, uint16_t color2) {
   unsigned long start;
   int           x, y, w = lcd.width(), h = lcd.height();
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   start = micros();
   for(y=0; y<h; y+=5) lcd.drawFastHLine(0, y, w, color1);
   for(x=0; x<w; x+=5) lcd.drawFastVLine(x, 0, h, color2);
@@ -216,7 +216,7 @@ unsigned long testRects(uint16_t color) {
                 cx = lcd.width()  / 2,
                 cy = lcd.height() / 2;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   n     = min(lcd.width(), lcd.height());
   start = micros();
   for(i=2; i<n; i+=6) {
@@ -234,7 +234,7 @@ unsigned long testFilledRects(uint16_t color1, uint16_t color2) {
                 cx = lcd.width()  / 2 - 1,
                 cy = lcd.height() / 2 - 1;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   n = min(lcd.width(), lcd.height()) - 1;
   for(i=n; i>0; i-=6) {
     i2    = i / 2;
@@ -254,7 +254,7 @@ unsigned long testFilledCircles(uint8_t radius, uint16_t color) {
   unsigned long start;
   int x, y, w = lcd.width(), h = lcd.height(), r2 = radius * 2;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   start = micros();
   for(x=radius; x<w; x+=r2) {
     for(y=radius; y<h; y+=r2) {
@@ -290,7 +290,7 @@ unsigned long testTriangles() {
   int           n, i, cx = lcd.width()  / 2 - 1,
                       cy = lcd.height() / 2 - 1;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   n     = min(cx, cy);
   start = micros();
   for(i=0; i<n; i+=5) {
@@ -309,7 +309,7 @@ unsigned long testFilledTriangles() {
   int           i, cx = lcd.width()  / 2 - 1,
                    cy = lcd.height() / 2 - 1;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   start = micros();
   for(i=min(cx,cy); i>10; i-=5) {
     start = micros();
@@ -330,7 +330,7 @@ unsigned long testRoundRects() {
                 cx = lcd.width()  / 2 - 1,
                 cy = lcd.height() / 2 - 1;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   w     = min(lcd.width(), lcd.height()) - 1;
   start = micros();
   for(i=0; i<w; i+=6) {
@@ -347,7 +347,7 @@ unsigned long testFilledRoundRects() {
                 cx = lcd.width()  / 2 - 1,
                 cy = lcd.height() / 2 - 1;
 
-  lcd.fillScreen(ILI9488_BLACK);
+  lcd.fillScreen(HX8357_BLACK);
   start = micros();
   for(i=min(lcd.width(), lcd.height()) - 1; i>20; i-=6) {
     i2 = i / 2;

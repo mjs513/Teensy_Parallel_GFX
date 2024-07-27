@@ -3155,14 +3155,14 @@ void Teensy_Parallel_GFX::resetScrollBackgroundColor(uint16_t color) {
 }
 
 uint16_t Teensy_Parallel_GFX::readPixel(int16_t x, int16_t y) {
+    x += _originx;
+    y += _originy;
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        x += _originx;
-        y += _originy;
         return _pfbtft[y * _width + x];
     }
 #endif
-    uint16_t color;
+    uint16_t color = 0;
     readRectFlexIO(x, y, 1, 1, &color);
     return color;
 }
