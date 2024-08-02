@@ -84,9 +84,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "Teensy_Parallel_GFX.h"
 
-#ifdef ENABLE_FRAMEBUFFER
-#define CBALLOC (320 * 480 * 2)
-#endif
 
 extern "C" const unsigned char glcdfont[];
 
@@ -134,7 +131,7 @@ uint8_t Teensy_Parallel_GFX::useFrameBuffer(
         // First see if we need to allocate buffer
         if (_pfbtft == NULL) {
             // Hack to start frame buffer on 32 byte boundary
-            _we_allocated_buffer = (uint16_t *)malloc(CBALLOC + 32);
+            _we_allocated_buffer = (uint16_t *)malloc((width() * height() * 2) + 32);
             if (_we_allocated_buffer == NULL)
                 return 0; // failed
             _pfbtft = (uint16_t *)(((uintptr_t)_we_allocated_buffer + 32) &
