@@ -137,17 +137,18 @@ class Teensy_Parallel_GFX : public Print {
     void pushPixels16bit(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
     void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
 
-    virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {};
-    virtual void beginWrite16BitColors() {};
-    virtual void write16BitColor(uint16_t color) {};
-    virtual void endWrite16BitColors() {};
+    virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) = 0;
+    virtual void beginWrite16BitColors() = 0;
+    virtual void write16BitColor(uint16_t color) = 0;
+    virtual void endWrite16BitColors() = 0;
     // virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
-    virtual void writeRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors) {};
+    virtual void updateScreenFlexIO() {writeRectFlexIO(0, 0, _width, _height, _pfbtft);}
+    virtual void writeRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors) = 0;
     virtual void fillRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {};
     virtual void readRectFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {};
     virtual bool writeRectAsyncFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) { return false; }
     virtual bool writeRectAsyncActiveFlexIO() { return false; }
-    virtual void setRotation(uint8_t r) {};
+    virtual void setRotation(uint8_t r) = 0;
 
     // setClipRect() sets a clipping rectangle (relative to any set origin) for drawing to be limited to.
     // Drawing is also restricted to the bounds of the display

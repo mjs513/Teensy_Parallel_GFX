@@ -164,6 +164,7 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
 {
 // Not sure if better here to check flag or check existence of buffer.
 // Will go by buffer as maybe can do interesting things?
+    //Serial.printf("Teensy_Parallel_GFX::updateScreen(void): %x %x %x\n", _use_fbtft, _standard, _updateChangedAreasOnly);
 #ifdef ENABLE_FRAMEBUFFER
     // bugbug: copy of write rect minus frame buffer
     // can cleanup.
@@ -171,7 +172,9 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
         return; // bail
 
     if (_standard && !_updateChangedAreasOnly) {
-        writeRectFlexIO(0, 0, _width, _height, _pfbtft);
+        // Going to allow subclass to maybe do something different...
+        updateScreenFlexIO();
+        //writeRectFlexIO(0, 0, _width, _height, _pfbtft);
     } else {
         int16_t start_x = _displayclipx1;
         int16_t start_y = _displayclipy1;
@@ -220,7 +223,8 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
 #endif
 }
 
-bool Teensy_Parallel_GFX::Teensy_Parallel_GFX::updateScreenAsync(bool update_cont) {
+bool Teensy_Parallel_GFX::updateScreenAsync(bool update_cont) {
+    //Serial.printf("Teensy_Parallel_GFX::updateScreenAsync(%x):%x\n", update_cont, _use_fbtft);
     if (update_cont)
         return false; // not supported yet.
 #ifdef ENABLE_FRAMEBUFFER
@@ -231,12 +235,12 @@ bool Teensy_Parallel_GFX::Teensy_Parallel_GFX::updateScreenAsync(bool update_con
     return false; // bail
 }
 
-void Teensy_Parallel_GFX::Teensy_Parallel_GFX::waitUpdateAsyncComplete() {
+void Teensy_Parallel_GFX::waitUpdateAsyncComplete() {
     while (writeRectAsyncActiveFlexIO()) {
     }
 }
 
-void Teensy_Parallel_GFX::Teensy_Parallel_GFX::endUpdateAsync() {
+void Teensy_Parallel_GFX::endUpdateAsync() {
     // Currently not supporting this.
 }
 
@@ -2971,7 +2975,6 @@ void Teensy_Parallel_GFX::writeSubImageRect(int16_t x, int16_t y, int16_t w, int
 
 // fill a rectangle
 void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
-
     x += _originx;
     y += _originy;
 
