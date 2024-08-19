@@ -130,6 +130,64 @@ typedef struct {
 #define ILI9488_GREENYELLOW 0xAFE5 /* 173, 255,  47 */
 #define ILI9488_PINK 0xF81F
 
+
+class Teensy_Parallel_FB {
+public:
+    Teensy_Parallel_FB(uint16_t width, uint16_t height, uintptr_t fb) : _width(width), _height(height), _fb(fb) {}
+
+    virtual void drawPixel(int16_t x, int16_t y, uint16_t color) = 0;
+    virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) = 0;
+    virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) = 0;
+    virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) = 0;
+    virtual void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) = 0;
+
+    virtual void drawPixel24(int16_t x, int16_t y, uint32_t color) = 0;
+    virtual void drawFastVLine24(int16_t x, int16_t y, int16_t h, uint32_t color) = 0;
+    virtual void drawFastHLine24(int16_t x, int16_t y, int16_t w, uint32_t color) = 0;
+    virtual void fillRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color) = 0;
+    virtual void writeRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t *pcolors) = 0;
+    uint16_t _width;
+    uint16_t _height;
+    uintptr_t _fb;
+};
+
+class Teensy_Parallel_FB16 : public Teensy_Parallel_FB {
+public:
+    Teensy_Parallel_FB16(uint16_t width, uint16_t height, uintptr_t fb) : Teensy_Parallel_FB(width, height, fb) {}
+
+    virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
+    virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+    virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+    virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+    virtual void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+
+    virtual void drawPixel24(int16_t x, int16_t y, uint32_t color);
+    virtual void drawFastVLine24(int16_t x, int16_t y, int16_t h, uint32_t color);
+    virtual void drawFastHLine24(int16_t x, int16_t y, int16_t w, uint32_t color);
+    virtual void fillRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color);
+    virtual void writeRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t *pcolors);
+};
+
+class Teensy_Parallel_FB24 : public Teensy_Parallel_FB {
+public:
+    Teensy_Parallel_FB24(uint16_t width, uint16_t height, uintptr_t fb) : Teensy_Parallel_FB(width, height, fb) {}
+
+    virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
+    virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+    virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+    virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+    virtual void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+
+    virtual void drawPixel24(int16_t x, int16_t y, uint32_t color);
+    virtual void drawFastVLine24(int16_t x, int16_t y, int16_t h, uint32_t color);
+    virtual void drawFastHLine24(int16_t x, int16_t y, int16_t w, uint32_t color);
+    virtual void fillRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color);
+    virtual void writeRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t *pcolors);
+};
+
+
+
+
 class Teensy_Parallel_GFX : public Print {
 
   public:
