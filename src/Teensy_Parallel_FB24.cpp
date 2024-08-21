@@ -33,25 +33,13 @@ void Teensy_Parallel_FB24::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, 
     fillRect24(x, y, w, h, color565To888(color));
 }
 
-void Teensy_Parallel_FB24::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors) {
-    if (((x + w) < 0) || ((y + h) < 0) || (x >= _width) || (y >= _height) || (w <= 0) || (h <= 0)) return;
-    int16_t w_image = w; // remember width of image coming in.
-    if (y < 0) {
-        h += y; 
-        pcolors += (-y) * w_image;
-        y = 0;
-    }
-    if (x < 0) {
-        w += x;
-        pcolors += -x; 
-        x = 0;
-    }
-    uint16_t *pfb = (uint16_t*)_fb;
-    uint16_t *pfbRow = &pfb[y * (int)_width + x];
-    uint16_t *pcolors_row = pcolors;
+void Teensy_Parallel_FB24::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint16_t *pcolors) {
+
+    uint32_t *pfbRow = &_pfbtft[y * (int)_width + x];
+    const uint16_t *pcolors_row = pcolors;
     for (int16_t iy = 0; iy < h; iy++) {
         if ((y+iy) >= _height) break;
-        pfb = pfbRow;
+        uint32_t *pfb = pfbRow;
         pcolors = pcolors_row;
         for (int16_t ix = 0; ix < w; ix++) {
             if ((x+ix) >= _width) break;
@@ -69,20 +57,14 @@ void Teensy_Parallel_FB24::writeRect(int16_t x, int16_t y, int16_t w, int16_t h,
 //=============================================================================
 
 void Teensy_Parallel_FB24::drawPixel24(int16_t x, int16_t y, uint32_t color) {
-    if ((x < 0) || (y < 0) || (x >= _width) || (y >= _height)) return;
-    uint32_t *pfb = (uint32_t*)_fb;
-    pfb[y * (int)_width + x] = color;
+    updateChangedRange(x, y); // update the range of the screen that has been changed;
+    _pfbtft[y * (int)_width + x] = color;
 }
 
 void Teensy_Parallel_FB24::drawFastVLine24(int16_t x, int16_t y, int16_t h, uint32_t color) {
-    if ((x < 0) || ((y + h) < 0) || (x >= _width) || (y >= _height) || (h <= 0)) return;
-    
-    uint32_t *pfb = (uint32_t*)_fb;
-    pfb = &pfb[y * (int)_width + x];
-    if (y < 0) {
-        h += y; 
-        y = 0;
-    }
+    updateChangedRange(x, y, 1, h); // update the range of the screen that has been changed;
+
+    uint32_t *pfb = &_pfbtft[y * (int)_width + x];
     while (h--) {
         if (y >= _height) break;
         *pfb = color;
@@ -93,13 +75,10 @@ void Teensy_Parallel_FB24::drawFastVLine24(int16_t x, int16_t y, int16_t h, uint
 }
 
 void Teensy_Parallel_FB24::drawFastHLine24(int16_t x, int16_t y, int16_t w, uint32_t color) {
-    if (((x + w) < 0) || (y < 0) || (x >= _width) || (y >= _height) || (w <= 0)) return;
-    uint32_t *pfb = (uint32_t*)_fb;
-    if (x < 0) {
-        w += x;
-        x = 0;
-    }
-    pfb = &pfb[y * (int)_width + x];
+    updateChangedRange(x, y, w, 1); // update the range of the screen that has been changed;
+
+    uint32_t *pfb = &_pfbtft[y * (int)_width + x];
+
     while (w--) {
         if (x >= _width) break;
         *pfb++ = color;
@@ -109,20 +88,11 @@ void Teensy_Parallel_FB24::drawFastHLine24(int16_t x, int16_t y, int16_t w, uint
 }
 
 void Teensy_Parallel_FB24::fillRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color) {
-    if (((x + w) < 0) || ((y + h) < 0) || (x >= _width) || (y >= _height) || (w <= 0) || (h <= 0)) return;
-    if (y < 0) {
-        h += y; 
-        y = 0;
-    }
-    if (x < 0) {
-        w += x;
-        x = 0;
-    }
-    uint32_t *pfb = (uint32_t*)_fb;
-    uint32_t *pfbRow = &pfb[y * (int)_width + x];
+    updateChangedRange(x, y, w, h); // update the range of the screen that has been changed;
+    uint32_t *pfbRow = &_pfbtft[y * (int)_width + x];
     for (int16_t iy = 0; iy < h; iy++) {
         if ((y+iy) >= _height) break;
-        pfb = pfbRow;
+        uint32_t *pfb = pfbRow;
         for (int16_t ix = 0; ix < w; ix++) {
             if ((x+ix) >= _width) break;
             *pfb++ = color;
@@ -131,25 +101,13 @@ void Teensy_Parallel_FB24::fillRect24(int16_t x, int16_t y, int16_t w, int16_t h
     }
 }
 
-void Teensy_Parallel_FB24::writeRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t *pcolors) {
-    if (((x + w) < 0) || ((y + h) < 0) || (x >= _width) || (y >= _height) || (w <= 0) || (h <= 0)) return;
-    int16_t w_image = w; // remember width of image coming in.
-    if (y < 0) {
-        h += y; 
-        pcolors += (-y) * w_image;
-        y = 0;
-    }
-    if (x < 0) {
-        w += x;
-        pcolors += -x; 
-        x = 0;
-    }
-    uint32_t *pfb = (uint32_t*)_fb;
-    uint32_t *pfbRow = &pfb[y * (int)_width + x];
-    uint32_t *pcolors_row = pcolors;
+void Teensy_Parallel_FB24::writeRect24(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint32_t *pcolors) {
+    updateChangedRange(x, y, w, h); // update the range of the screen that has been changed;
+    uint32_t *pfbRow = &_pfbtft[y * (int)_width + x];
+    const uint32_t *pcolors_row = pcolors;
     for (int16_t iy = 0; iy < h; iy++) {
         if ((y+iy) >= _height) break;
-        pfb = pfbRow;
+        uint32_t *pfb = pfbRow;
         pcolors = pcolors_row;
         for (int16_t ix = 0; ix < w; ix++) {
             if ((x+ix) >= _width) break;

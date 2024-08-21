@@ -112,13 +112,7 @@ Teensy_Parallel_GFX::Teensy_Parallel_GFX(int16_t w, int16_t h) : WIDTH(w), HEIGH
 void Teensy_Parallel_GFX::setFrameBuffer(uint16_t *frame_buffer) {
 #ifdef ENABLE_FRAMEBUFFER
     _pfbtft = frame_buffer;
-    /*  // Maybe you don't want the memory cleared as you may be playing games
-    wiht multiple buffers.
-    if (_pfbtft != NULL) {
-            memset(_pfbtft, 0, ILI9341_TFTHEIGHT*ILI9341_TFTWIDTH*2);
-    }
-    */
-
+    _tpfb = new Teensy_Parallel_FB16(this, (uintptr_t)frame_buffer);
 #endif
 }
 
@@ -136,6 +130,7 @@ uint8_t Teensy_Parallel_GFX::useFrameBuffer(
                 return 0; // failed
             _pfbtft = (uint16_t *)(((uintptr_t)_we_allocated_buffer + 32) &
                                    ~((uintptr_t)(31)));
+            _tpfb = new Teensy_Parallel_FB16(this, (uintptr_t)_pfbtft);
         }
         _use_fbtft = 1;
         clearChangedRange(); // make sure the dirty range is updated.
@@ -183,14 +178,14 @@ void Teensy_Parallel_GFX::updateScreen(void) // call to say update the screen no
 
         if (_updateChangedAreasOnly) {
             // maybe update range of values to update...
-            if (_changed_min_x > start_x)
-                start_x = _changed_min_x;
-            if (_changed_min_y > start_y)
-                start_y = _changed_min_y;
-            if (_changed_max_x < end_x)
-                end_x = _changed_max_x;
-            if (_changed_max_y < end_y)
-                end_y = _changed_max_y;
+            if (_tpfb->_changed_min_x > start_x)
+                start_x = _tpfb->_changed_min_x;
+            if (_tpfb->_changed_min_y > start_y)
+                start_y = _tpfb->_changed_min_y;
+            if (_tpfb->_changed_max_x < end_x)
+                end_x = _tpfb->_changed_max_x;
+            if (_tpfb->_changed_max_y < end_y)
+                end_y = _tpfb->_changed_max_y;
         }
 
         // Only do if actual area to update
@@ -778,40 +773,20 @@ void Teensy_Parallel_GFX::drawChar(int16_t x, int16_t y, unsigned char c,
 
 #ifdef ENABLE_FRAMEBUFFER
         if (_use_fbtft) {
-            updateChangedRange(
-                x, y, 6 * size_x,
-                8 * size_y); // update the range of the screen that has been changed;
-            uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
+            // use simplified version of drawing the text, using drawRect
             for (yc = 0; (yc < 8) && (y < _displayclipy2); yc++) {
-                for (yr = 0; (yr < size_y) && (y < _displayclipy2); yr++) {
-                    x = x_char_start; // get our first x position...
-                    if (y >= _displayclipy1) {
-                        uint16_t *pfbPixel = pfbPixel_row;
-                        for (xc = 0; xc < 5; xc++) {
-                            if (glcdfont[c * 5 + xc] & mask) {
-                                color = fgcolor;
-                            } else {
-                                color = bgcolor;
-                            }
-                            for (xr = 0; xr < size_x; xr++) {
-                                if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-                                    *pfbPixel = color;
-                                }
-                                pfbPixel++;
-                                x++;
-                            }
-                        }
-                        for (xr = 0; xr < size_x; xr++) {
-                            if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-                                *pfbPixel = bgcolor;
-                            }
-                            pfbPixel++;
-                            x++;
-                        }
+                x = x_char_start; // get our first x position...
+                for (xc = 0; xc < 5; xc++) {
+                    if (glcdfont[c * 5 + xc] & mask) {
+                        color = fgcolor;
+                    } else {
+                        color = bgcolor;
                     }
-                    pfbPixel_row += _width; // setup pointer to
-                    y++;
+                    fillRect(x, y, size_x, size_y, color);
+                    x += size_x;
                 }
+                fillRect(x, y, size_x, size_y, bgcolor);
+                y += size_y;
                 mask = mask << 1;
             }
 
@@ -1186,31 +1161,13 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
         */
 #ifdef ENABLE_FRAMEBUFFER
         if (_use_fbtft) {
-            updateChangedRange(
-                start_x,
-                start_y); // update the range of the screen that has been changed;
-            updateChangedRange(
-                end_x,
-                end_y); // update the range of the screen that has been changed;
-            uint16_t *pfbPixel_row = &_pfbtft[start_y * _width + start_x];
-            uint16_t *pfbPixel;
             int screen_y = start_y;
             int screen_x;
 
             // Clear above character
-            while (screen_y < origin_y) {
-                pfbPixel = pfbPixel_row;
-                // only output if this line is within the clipping region.
-                if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
-                    for (screen_x = start_x; screen_x <= end_x; screen_x++) {
-                        if (screen_x >= _displayclipx1) {
-                            *pfbPixel = textbgcolor;
-                        }
-                        pfbPixel++;
-                    }
-                }
-                screen_y++;
-                pfbPixel_row += _width;
+            if (screen_y < origin_y) {
+                fillRect(start_x, screen_y, (end_x - start_x) + 1, origin_y - start_y, textbgcolor);
+                screen_y = origin_y;
             }
 
             // Anti-aliased font
@@ -1220,7 +1177,6 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
                 uint32_t xp = 0;
                 int glyphend_x = origin_x + width;
                 while (linecount) {
-                    pfbPixel = pfbPixel_row;
                     screen_x = start_x;
                     while (screen_x <= end_x) {
                         // XXX: I'm sure clipping could be done way more efficiently than
@@ -1229,22 +1185,20 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
                             (screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
                             // Clear before or after pixel
                             if ((screen_x < origin_x) || (screen_x >= glyphend_x)) {
-                                *pfbPixel = textbgcolor;
+                                drawPixel(screen_x, screen_y, textbgcolor);
                             }
                             // Draw alpha-blended character
                             else {
                                 uint8_t alpha = fetchpixel(data, bitoffset, xp);
-                                *pfbPixel = alphaBlendRGB565Premultiplied(
+                                drawPixel(screen_x, screen_y, alphaBlendRGB565Premultiplied(
                                     textcolorPrexpanded, textbgcolorPrexpanded,
-                                    (uint8_t)(alpha * fontalphamx));
+                                    (uint8_t)(alpha * fontalphamx)));
                                 bitoffset += fontbpp;
                                 xp++;
                             }
                         } // clip
                         screen_x++;
-                        pfbPixel++;
                     }
-                    pfbPixel_row += _width;
                     screen_y++;
                     linecount--;
                 }
@@ -1270,17 +1224,13 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
                     }
                     uint32_t bitoffset_row_start = bitoffset;
                     while (n--) {
-                        pfbPixel = pfbPixel_row;
-
                         // Clear to left
                         if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
                             bitoffset = bitoffset_row_start; // we will work through these
                                                              // bits maybe multiple times
-                            for (screen_x = start_x; screen_x < origin_x; screen_x++) {
-                                if (screen_x >= _displayclipx1) {
-                                    *pfbPixel = textbgcolor;
-                                } // make sure not clipped
-                                pfbPixel++;
+                            if (start_x < origin_x) {
+                                drawFastHLine(start_x, screen_y, origin_x - start_x, textbgcolor);
+                                screen_x = origin_x;
                             }
                         }
 
@@ -1296,11 +1246,7 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
                             // Serial.printf(" %d %d %x %x\n", x, xsize, bits, bit_mask);
                             if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
                                 while (bit_mask && (screen_x <= end_x)) {
-                                    if ((screen_x >= _displayclipx1) &&
-                                        (screen_x < _displayclipx2)) {
-                                        *pfbPixel = (bits & bit_mask) ? textcolor : textbgcolor;
-                                    }
-                                    pfbPixel++;
+                                    drawPixel(screen_x, screen_y, (bits & bit_mask) ? textcolor : textbgcolor);
                                     bit_mask = bit_mask >> 1;
                                     screen_x++; // increment our pixel position.
                                 }
@@ -1312,12 +1258,11 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
                         // Clear to right
                         if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
                             // output bg color and right hand side
-                            while (screen_x++ <= end_x) {
-                                *pfbPixel++ = textbgcolor;
+                            if (screen_x <= end_x) {
+                                drawFastHLine(screen_x, screen_y, (end_x - screen_x) + 1, textbgcolor);
                             }
                         }
                         screen_y++;
-                        pfbPixel_row += _width;
                         linecount--;
                     }
                 }
@@ -1325,18 +1270,7 @@ void Teensy_Parallel_GFX::drawFontChar(unsigned int c) {
             } // 1bpp
 
             // clear below character
-            while (screen_y++ <= end_y) {
-                if ((screen_y >= _displayclipy1) && (screen_y < _displayclipy2)) {
-                    pfbPixel = pfbPixel_row;
-                    for (screen_x = start_x; screen_x <= end_x; screen_x++) {
-                        if (screen_x >= _displayclipx1) {
-                            *pfbPixel = textbgcolor;
-                        }
-                        pfbPixel++;
-                    }
-                }
-                pfbPixel_row += _width;
-            }
+            if (screen_y <= end_y) fillRect(start_x, screen_y, (end_x - start_x ) + 1, (end_y - screen_y) + 1, textbgcolor);
 
         } else
 #endif
@@ -1929,31 +1863,36 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
 
 #ifdef ENABLE_FRAMEBUFFER
         if (_use_fbtft) {
-            // lets try to output the values directly...
-            updateChangedRange(
-                x_start,
-                y_start); // update the range of the screen that has been changed;
-            updateChangedRange(
-                x_end,
-                y_end); // update the range of the screen that has been changed;
-            uint16_t *pfbPixel_row = &_pfbtft[y_start * _width + x_start];
-            uint16_t *pfbPixel;
-            // First lets fill in the top parts above the actual rectangle...
-            while (y_top_fill--) {
-                pfbPixel = pfbPixel_row;
-                if ((y >= _displayclipy1) && (y < _displayclipy2)) {
-                    for (int16_t xx = x_start; xx < x_end; xx++) {
-                        if ((xx >= _displayclipx1) && (xx >= x_offset_cursor)) {
-                            if ((xx >= _gfx_last_char_x_write) ||
-                                (*pfbPixel != _gfx_last_char_textcolor))
-                                *pfbPixel = textbgcolor;
+            // First lets see if we need to deal with where previous character
+            // maybe extended into our space.
+
+            // Then lets fill in the top parts above the actual rectangle...
+            // Use fillrect for part that is right of extent of last character.
+            if (y_top_fill) {
+                if (x_start >= _gfx_last_char_x_write) {
+                    fillRect(x_start, y, x_end - x_start, y_top_fill, textbgcolor);
+                    y += y_top_fill;
+                } else {
+                    // filled in the part to right of the extent of previous character.
+                    fillRect(_gfx_last_char_x_write, y, x_end - _gfx_last_char_x_write, y_top_fill, textbgcolor);
+
+                    // Now we need to loop through and only update those that don't have other charcters background...
+                    while (y_top_fill--) {
+                        if ((y >= _displayclipy1) && (y < _displayclipy2)) {
+                            for (int16_t xx = x_start; xx < _gfx_last_char_x_write; xx++) {
+                                if ((xx >= _displayclipx1) && (xx >= x_offset_cursor)) {
+                                    if (readPixel(xx, y) != _gfx_last_char_textcolor)
+                                        drawPixel(xx, y, textbgcolor);
+                                }
+                            }
                         }
-                        pfbPixel++;
+                        y++;
                     }
                 }
-                pfbPixel_row += _width;
-                y++;
-            }
+
+            } 
+
+
             // Now lets output all of the pixels for each of the rows..
             for (yy = 0; (yy < h) && (y < _displayclipy2); yy++) {
                 uint16_t bo_save = bo;
@@ -1961,22 +1900,24 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                 uint8_t bits_save = bits;
                 for (uint8_t yts = 0; (yts < textsize_y) && (y < _displayclipy2);
                      yts++) {
-                    pfbPixel = pfbPixel_row;
                     // need to repeat the stuff for each row...
                     bo = bo_save;
                     bit = bit_save;
                     bits = bits_save;
-                    x = x_start;
                     if (y >= _displayclipy1) {
-                        while (x < x_left_fill) {
-                            if ((x >= _displayclipx1) && (x < _displayclipx2)) {
-                                if ((x >= _gfx_last_char_x_write) ||
-                                    (*pfbPixel != _gfx_last_char_textcolor))
-                                    *pfbPixel = textbgcolor;
+                        if (x_start >= _gfx_last_char_x_write) {
+                            drawFastHLine(x_start, y, x_left_fill - x_start, textbgcolor);
+                        } else {
+                            drawFastHLine(_gfx_last_char_x_write, y, x_left_fill - _gfx_last_char_x_write, textbgcolor);
+                            for (int16_t xx = x_start; xx < _gfx_last_char_x_write; xx++) {
+                                if ((xx >= _displayclipx1) && (xx >= x_offset_cursor)) {
+                                    if (readPixel(xx, y) != _gfx_last_char_textcolor)
+                                        drawPixel(xx, y, textbgcolor);
+                                }
                             }
-                            pfbPixel++;
-                            x++;
                         }
+                        x = x_left_fill;
+
                         for (xx = 0; xx < w; xx++) {
                             if (!(bit++ & 7)) {
                                 bits = bitmap[bo++];
@@ -1984,47 +1925,43 @@ void Teensy_Parallel_GFX::drawGFXFontChar(unsigned int c) {
                             for (uint8_t xts = 0; xts < textsize_x; xts++) {
                                 if ((x >= _displayclipx1) && (x < _displayclipx2)) {
                                     if (bits & 0x80)
-                                        *pfbPixel = textcolor;
+                                        drawPixel(x, y, textcolor);
                                     else if (x >= x_offset_cursor) {
                                         if ((x >= _gfx_last_char_x_write) ||
-                                            (*pfbPixel != _gfx_last_char_textcolor))
-                                            *pfbPixel = textbgcolor;
+                                            (readPixel(x, y) != _gfx_last_char_textcolor))
+                                            drawPixel(x, y, textbgcolor);
                                     }
                                 }
-                                pfbPixel++;
                                 x++; // remember our logical position...
                             }
                             bits <<= 1;
                         }
                         // Fill in any additional bg colors to right of our output
-                        while (x++ < x_end) {
-                            if (x >= _displayclipx1) {
-                                *pfbPixel = textbgcolor;
-                            }
-                            pfbPixel++;
-                        }
+                        drawFastHLine(x, y, x_end - x, textbgcolor);
                     }
                     y++; // remember which row we just output
-                    pfbPixel_row += _width;
                 }
             }
             // And output any more rows below us...
-            while (y < y_end) {
-                if (y >= _displayclipy1) {
-                    pfbPixel = pfbPixel_row;
-                    for (int16_t xx = x_start; xx < x_end; xx++) {
-                        if ((xx >= _displayclipx1) && (xx >= x_offset_cursor)) {
-                            if ((xx >= _gfx_last_char_x_write) ||
-                                (*pfbPixel != _gfx_last_char_textcolor))
-                                *pfbPixel = textbgcolor;
-                        }
-                        pfbPixel++;
-                    }
-                }
-                pfbPixel_row += _width;
-                y++;
-            }
+            if (x_start >= _gfx_last_char_x_write) {
+                fillRect(x_start, y, x_end - x_start, y_end - y, textbgcolor);
+            } else {
+                // filled in the part to right of the extent of previous character.
+                fillRect(_gfx_last_char_x_write, y, x_end - _gfx_last_char_x_write, y_end - y, textbgcolor);
 
+                // Now we need to loop through and only update those that don't have other charcters background...
+                while (y < y_end) {
+                    if ((y >= _displayclipy1) && (y < _displayclipy2)) {
+                        for (int16_t xx = x_start; xx < _gfx_last_char_x_write; xx++) {
+                            if ((xx >= _displayclipx1) && (xx >= x_offset_cursor)) {
+                                if (readPixel(xx, y) != _gfx_last_char_textcolor)
+                                    drawPixel(xx, y, textbgcolor);
+                            }
+                        }
+                    }
+                    y++;
+                }
+            }
         } else
 #endif
         {
@@ -2466,10 +2403,12 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
 
     // For X see how many items in color array to skip at start of row and
     // likewise end of row
+    int16_t w_image = w; // remember the actual size.
     if (x < _displayclipx1) {
         x_clip_left = _displayclipx1 - x;
         w -= x_clip_left;
         x = _displayclipx1;
+        pixels += x_clip_left;
     }
     if ((x + w - 1) >= _displayclipx2) {
         x_clip_right = w;
@@ -2480,26 +2419,16 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
     // x_clip_right, x_clip_left);
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, h); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
-        for (; h > 0; h--) {
-            pixels += x_clip_left;
-            uint16_t *pfbPixel = pfbPixel_row;
-            for (int i = 0; i < w; i++) {
-                *pfbPixel++ = palette[*pixels++];
-            }
-            pixels += x_clip_right;
-            pfbPixel_row += _width;
-        }
+        _tpfb->writeRect8BPP(x, y, w, h, w_image, pixels, palette);
         return;
     }
 #endif
 
     setAddr(x, y, x + w - 1, y + h - 1);
     beginWrite16BitColors();
+    const uint8_t *pixels_row = pixels;
     for (y = h; y > 0; y--) {
-        pixels += x_clip_left;
+        pixels = pixels_row;
         // Serial.printf("%x: ", (uint32_t)pixels);
         for (x = w; x > 1; x--) {
             // Serial.print(*pixels, DEC);
@@ -2507,7 +2436,7 @@ void Teensy_Parallel_GFX::writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t
         }
         // Serial.println(*pixels, DEC);
         write16BitColor(palette[*pixels++]);
-        pixels += x_clip_right;
+        pixels_row += w_image;
     }
     endWrite16BitColors();
 }
@@ -2561,11 +2490,8 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
     x += _originx;
     y += _originy;
     uint8_t pixels_per_byte = 8 / bits_per_pixel;
-    uint16_t count_of_bytes_per_row =
-        (w + pixels_per_byte - 1) /
-        pixels_per_byte; // Round up to handle non multiples
-    uint8_t row_shift_init =
-        8 - bits_per_pixel;                             // We shift down 6 bits by default
+    uint16_t count_of_bytes_per_row = (w + pixels_per_byte - 1) / pixels_per_byte; // Round up to handle non multiples
+    uint8_t row_shift_init = 8 - bits_per_pixel;                             // We shift down 6 bits by default
     uint8_t pixel_bit_mask = (1 << bits_per_pixel) - 1; // get mask to use below
     // Rectangular clipping
 
@@ -2615,26 +2541,7 @@ void Teensy_Parallel_GFX::writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, h); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
-        for (; h > 0; h--) {
-            uint16_t *pfbPixel = pfbPixel_row;
-            pixels = pixels_row_start;            // setup for this row
-            uint8_t pixel_shift = row_shift_init; // Setup mask
-
-            for (int i = 0; i < w; i++) {
-                *pfbPixel++ = palette[((*pixels) >> pixel_shift) & pixel_bit_mask];
-                if (!pixel_shift) {
-                    pixel_shift = 8 - bits_per_pixel; // setup next mask
-                    pixels++;
-                } else {
-                    pixel_shift -= bits_per_pixel;
-                }
-            }
-            pfbPixel_row += _width;
-            pixels_row_start += count_of_bytes_per_row;
-        }
+        _tpfb->writeRectNBPP(x, y, w, h, bits_per_pixel, count_of_bytes_per_row, row_shift_init, pixels, palette);
         return;
     }
 #endif
@@ -2693,19 +2600,13 @@ void Teensy_Parallel_GFX::fillRectVGradient(int16_t x, int16_t y, int16_t w, int
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, h); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
         for (; h > 0; h--) {
             uint16_t color = RGB14tocolor565(r, g, b);
-            uint16_t *pfbPixel = pfbPixel_row;
-            for (int i = 0; i < w; i++) {
-                *pfbPixel++ = color;
-            }
+            drawFastHLine(x, y, w, color);
             r += dr;
             g += dg;
             b += db;
-            pfbPixel_row += _width;
+            y++;
         }
     } else
 #endif
@@ -2762,21 +2663,13 @@ void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, h); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
         for (; h > 0; h--) {
-            uint16_t *pfbPixel = pfbPixel_row;
-            for (int i = 0; i < w; i++) {
-                *pfbPixel++ = RGB14tocolor565(r, g, b);
-                r += dr;
-                g += dg;
-                b += db;
-            }
-            pfbPixel_row += _width;
-            r = r1;
-            g = g1;
-            b = b1;
+            uint16_t color = RGB14tocolor565(r, g, b);
+            drawFastVLine(x, y, w, color);
+            r += dr;
+            g += dg;
+            b += db;
+            x++;
         }
     } else
 #endif
@@ -2815,6 +2708,7 @@ void Teensy_Parallel_GFX::fillScreenHGradient(uint16_t color1, uint16_t color2) 
 
 // Now lets see if we can writemultiple pixels
 void Teensy_Parallel_GFX::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors) {
+    int16_t w_image = w; // remember the w that came in.
     if (x == CENTER)
         x = (_width - w) / 2;
     if (y == CENTER)
@@ -2849,6 +2743,7 @@ void Teensy_Parallel_GFX::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, 
         x_clip_left = _displayclipx1 - x;
         w -= x_clip_left;
         x = _displayclipx1;
+        pcolors += x_clip_left;
     }
     if ((x + w - 1) >= _displayclipx2) {
         x_clip_right = w;
@@ -2858,38 +2753,21 @@ void Teensy_Parallel_GFX::writeRect(int16_t x, int16_t y, int16_t w, int16_t h, 
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, h); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
-
-        for (; h > 0; h--) {
-            uint16_t *pfbPixel = pfbPixel_row;
-            pcolors += x_clip_left;
-            for (int i = 0; i < w; i++) {
-                if (*pfbPixel != *pcolors) {
-                    // pixel changed
-                    *pfbPixel = *pcolors;
-                }
-                pfbPixel++;
-                pcolors++;
-            }
-            pfbPixel_row += _width;
-            pcolors += x_clip_right;
-            y++;
-        }
+        _tpfb->writeRect(x, y, w, h, w_image, pcolors);
         return;
     }
 #endif
 
     setAddr(x, y, x + w - 1, y + h - 1);
     beginWrite16BitColors();
+    const uint16_t *pcolors_row = pcolors;
     for (y = h; y > 0; y--) {
-        pcolors += x_clip_left;
+        pcolors = pcolors_row;
         for (x = w; x > 1; x--) {
             write16BitColor(*pcolors++);
         }
         write16BitColor(*pcolors++);
-        pcolors += x_clip_right;
+        pcolors_row += w_image;
     }
     endWrite16BitColors();
 }
@@ -2944,16 +2822,7 @@ void Teensy_Parallel_GFX::writeSubImageRect(int16_t x, int16_t y, int16_t w, int
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
-        for (; h > 0; h--) {
-            const uint16_t *pcolors_row = pcolors;
-            uint16_t *pfbPixel = pfbPixel_row;
-            for (int i = 0; i < w; i++) {
-                *pfbPixel++ = *pcolors++;
-            }
-            pfbPixel_row += _width;
-            pcolors = pcolors_row + image_width;
-        }
+        _tpfb->writeRect(x, y, w, h, image_width, pcolors);
         return;
     }
 #endif
@@ -2979,10 +2848,9 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
     y += _originy;
 
     // Rectangular clipping (drawChar w/big text requires this)
-    if ((x >= _displayclipx2) || (y >= _displayclipy2))
-        return;
-    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1))
-        return;
+    if ((x >= _displayclipx2) || (y >= _displayclipy2) || (w < 1) || (h < 1)) return;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1)) return;
+
     if (x < _displayclipx1) {
         w -= (_displayclipx1 - x);
         x = _displayclipx1;
@@ -2998,33 +2866,11 @@ void Teensy_Parallel_GFX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, u
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, h); // update the range of the screen that has been changed;
-                         // if ((x & 1) || (w & 1)) {
-        // Serial.printf("Fillrect(%d, %d, %d, %d, %x) %d %d\n", x, y, w, h, color, _originx, _originy);
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
-        for (; h > 0; h--) {
-            uint16_t *pfbPixel = pfbPixel_row;
-            for (int i = 0; i < w; i++) {
-                *pfbPixel++ = color;
-            }
-            pfbPixel_row += _width;
-        }
-        //}
+        _tpfb->fillRect(x, y, w, h, color);
     } else
 #endif
     {
-#if 1
         fillRectFlexIO(x, y, w, h, color);
-#else
-        setAddr(x, y, x + w - 1, y + h - 1);
-        beginWrite16BitColors();
-        uint32_t count_pixels = w * h;
-        while (count_pixels--) {
-            write16BitColor(color);
-        }
-        endWrite16BitColors();
-#endif
     }
 }
 
@@ -3036,21 +2882,16 @@ void Teensy_Parallel_GFX::drawPixel(int16_t x, int16_t y, uint16_t color) {
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y); // update the range of the screen that has been changed;
-        _pfbtft[y * _width + x] = color;
-
-    } else
-#endif
-    {
-        writeRectFlexIO(x, y, 1, 1, &color);
+        _tpfb->drawPixel(x, y, color);
+        return;
     }
+#endif
+    writeRectFlexIO(x, y, 1, 1, &color);
 }
 
 void Teensy_Parallel_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {
     x += _originx;
     y += _originy;
-
     // Rectangular clipping
     if ((x < _displayclipx1) || (x >= _displayclipx2) || (y >= _displayclipy2))
         return;
@@ -3065,29 +2906,23 @@ void Teensy_Parallel_GFX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, 1, h); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel = &_pfbtft[y * _width + x];
-        while (h--) {
-            *pfbPixel = color;
-            pfbPixel += _width;
-        }
-    } else
-#endif
-    {
-        // quick and dirty output
-        setAddr(x, y, x, y + h - 1);
-        beginWrite16BitColors();
-        while (h--) {
-            write16BitColor(color);
-        }
-        endWrite16BitColors();
+        _tpfb->drawFastVLine(x, y, h, color);
+        return;
     }
+#endif    
+    // quick and dirty output
+    setAddr(x, y, x, y + h - 1);
+    beginWrite16BitColors();
+    while (h--) {
+        write16BitColor(color);
+    }
+    endWrite16BitColors();
 }
 
 void Teensy_Parallel_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {
     x += _originx;
     y += _originy;
+
 
     // Rectangular clipping
     if ((y < _displayclipy1) || (x >= _displayclipx2) || (y >= _displayclipy2))
@@ -3103,22 +2938,16 @@ void Teensy_Parallel_GFX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        updateChangedRange(
-            x, y, w, 1); // update the range of the screen that has been changed;
-        uint16_t *pfbPixel = &_pfbtft[y * _width + x];
-        while (w--) {
-            *pfbPixel++ = color;
-        }
-    } else
-#endif
-    {
-        setAddr(x, y, x + w - 1, y);
-        beginWrite16BitColors();
-        while (w--) {
-            write16BitColor(color);
-        }
-        endWrite16BitColors();
+        _tpfb->drawFastHLine(x, y, w, color);
+        return;
     }
+#endif    
+    setAddr(x, y, x + w - 1, y);
+    beginWrite16BitColors();
+    while (w--) {
+        write16BitColor(color);
+    }
+    endWrite16BitColors();
 }
 
 void Teensy_Parallel_GFX::scrollTextArea(uint8_t scrollSize) {
@@ -3157,13 +2986,15 @@ void Teensy_Parallel_GFX::resetScrollBackgroundColor(uint16_t color) {
 uint16_t Teensy_Parallel_GFX::readPixel(int16_t x, int16_t y) {
     x += _originx;
     y += _originy;
+    uint16_t color = 0;
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        return _pfbtft[y * _width + x];
-    }
+        _tpfb->readRect(x, y, 1, 1, &color);
+    } else
 #endif
-    uint16_t color = 0;
-    readRectFlexIO(x, y, 1, 1, &color);
+    {
+        readRectFlexIO(x, y, 1, 1, &color);
+    }
     return color;
 }
 
@@ -3176,16 +3007,135 @@ void Teensy_Parallel_GFX::readRect(int16_t x, int16_t y, int16_t w, int16_t h,
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        uint16_t *pfbPixel_row = &_pfbtft[y * _width + x];
-        for (; h > 0; h--) {
-            uint16_t *pfbPixel = pfbPixel_row;
-            for (int i = 0; i < w; i++) {
-                *pcolors++ = *pfbPixel++;
-            }
-            pfbPixel_row += _width;
-        }
+        _tpfb->readRect(x, y, w, h, pcolors);
         return;
     }
 #endif
     readRectFlexIO(x, y, w, h, pcolors);
+}
+
+void Teensy_Parallel_GFX::drawPixel24BPP(int16_t x, int16_t y, uint32_t color) {
+    x += _originx;
+    y += _originy;
+    if ((x < _displayclipx1) || (x >= _displayclipx2) || (y < _displayclipy1) || (y >= _displayclipy2))
+        return;
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        _tpfb->drawPixel24(x, y, color);
+        return;
+    }
+#endif
+    writeRect24BPPFlexIO(x, y, 1, 1, 1, &color);
+}
+
+void Teensy_Parallel_GFX::fillRect24BPP(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color) {
+    x += _originx;
+    y += _originy;
+
+    // Rectangular clipping (drawChar w/big text requires this)
+    if ((x >= _displayclipx2) || (y >= _displayclipy2) || (w < 1) || (h < 1)) return;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1)) return;
+
+    if (x < _displayclipx1) {
+        w -= (_displayclipx1 - x);
+        x = _displayclipx1;
+    }
+    if (y < _displayclipy1) {
+        h -= (_displayclipy1 - y);
+        y = _displayclipy1;
+    }
+    if ((x + w - 1) >= _displayclipx2)
+        w = _displayclipx2 - x;
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        _tpfb->fillRect24(x, y, w, h, color);
+    } else
+#endif
+    {
+        fillRect24BPPFlexIO(x, y, w, h, color);
+    }
+}
+
+bool Teensy_Parallel_GFX::writeRect24BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint32_t *pcolors) {
+    int16_t w_image = w; // remember the w that came in.
+    if (x == CENTER)
+        x = (_width - w) / 2;
+    if (y == CENTER)
+        y = (_height - h) / 2;
+    x += _originx;
+    y += _originy;
+    uint16_t x_clip_left = 0;  // How many entries at start of colors to skip at start of row
+    uint16_t x_clip_right = 0; // how many color entries to skip at end of row for clipping
+    // Rectangular clipping
+
+    // See if the whole thing out of bounds...
+    if ((x >= _displayclipx2) || (y >= _displayclipy2))
+        return false;
+    if (((x + w) <= _displayclipx1) || ((y + h) <= _displayclipy1))
+        return false;
+
+    // In these cases you can not do simple clipping, as we need to synchronize the colors array with the
+    // We can clip the height as when we get to the last visible we don't have to go any farther.
+    // also maybe starting y as we will advance the color array.
+    if (y < _displayclipy1) {
+        int dy = (_displayclipy1 - y);
+        h -= dy;
+        pcolors += (dy * w); // Advance color array to
+        y = _displayclipy1;
+    }
+
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+
+    // For X see how many items in color array to skip at start of row and likewise end of row
+    if (x < _displayclipx1) {
+        x_clip_left = _displayclipx1 - x;
+        w -= x_clip_left;
+        x = _displayclipx1;
+        pcolors += x_clip_left;
+    }
+    if ((x + w - 1) >= _displayclipx2) {
+        x_clip_right = w;
+        w = _displayclipx2 - x;
+        x_clip_right -= w;
+    }
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        _tpfb->writeRect24(x, y, w, h, w_image, pcolors);
+        return true;
+    }
+#endif
+ 
+    writeRect24BPPFlexIO(x, y, w, h, w_image, pcolors);
+    return true;
+}
+
+void Teensy_Parallel_GFX::fillRect24BPPFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color) {
+    fillRectFlexIO(x, y, w, h, color888To565(color));
+}
+
+
+bool Teensy_Parallel_GFX::writeRect24BPPFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint32_t *pcolors) {
+    uint32_t length = w * h;
+    // bail if nothing to do
+    if (length == 0) return false;
+
+    setAddr(x, y, x + w - 1, y + h - 1);
+    beginWrite16BitColors();
+    const uint32_t *pcolors_row = pcolors;
+    for (y = h; y > 0; y--) {
+        pcolors = pcolors_row;
+        for (x = w; x > 1; x--) {
+            write16BitColor(color888To565(*pcolors++));
+        }
+        write16BitColor(color888To565(*pcolors++));
+        pcolors_row += w_image;
+    }
+    endWrite16BitColors();
+    return true;
 }
