@@ -137,7 +137,7 @@ public:
     Teensy_Parallel_FB(Teensy_Parallel_GFX *ptpgfx) : _ptpgfx(ptpgfx) {}
 
     // note thesepre clipped. 
-
+    virtual uint8_t busWidth() = 0;
     virtual void drawPixel(int16_t x, int16_t y, uint16_t color) = 0;
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) = 0;
     virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) = 0;
@@ -204,6 +204,7 @@ public:
 class Teensy_Parallel_FB16 : public Teensy_Parallel_FB {
 public:
     Teensy_Parallel_FB16(Teensy_Parallel_GFX *ptpgfx, uintptr_t fb) : Teensy_Parallel_FB(ptpgfx) {_pfbtft = (uint16_t*)fb; Serial.printf("Teensy_Parallel_FB16(%p %p)\n", ptpgfx, fb);}
+    virtual uint8_t busWidth() {return 16;}
 
     virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
@@ -212,7 +213,6 @@ public:
     virtual void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint16_t *pcolors);
     virtual void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
     
-    // pre clipped
     virtual void writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, 
         const uint8_t *pixels, const uint16_t *palette);
     virtual void writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t h,
@@ -231,6 +231,7 @@ public:
 class Teensy_Parallel_FB24 : public Teensy_Parallel_FB {
 public:
     Teensy_Parallel_FB24(Teensy_Parallel_GFX *ptpgfx, uintptr_t fb) : Teensy_Parallel_FB(ptpgfx) {_pfbtft = (uint32_t*)fb;}
+    virtual uint8_t busWidth() {return 24;}
 
     virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
@@ -239,7 +240,6 @@ public:
     virtual void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint16_t *pcolors);
     virtual void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
 
-    // pre clipped
     virtual void writeRect8BPP(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, 
         const uint8_t *pixels, const uint16_t *palette);
     virtual void writeRectNBPP(int16_t x, int16_t y, int16_t w, int16_t h,
@@ -489,7 +489,7 @@ class Teensy_Parallel_GFX : public Print {
                            uint16_t color1, uint16_t color2);
     void fillScreenVGradient(uint16_t color1, uint16_t color2);
     void fillScreenHGradient(uint16_t color1, uint16_t color2);
-    void setFrameBuffer(uint16_t *frame_buffer);
+    void setFrameBuffer(uint16_t *frame_buffer, uint16_t bit_depth=16);
     uint8_t useFrameBuffer(boolean b);                // use the frame buffer?  First call will allocate
     void freeFrameBuffer(void);                       // explicit call to release the buffer
     void updateScreen(void);                          // call to say update the screen now.

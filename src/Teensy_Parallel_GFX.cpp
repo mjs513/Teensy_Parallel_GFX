@@ -109,12 +109,18 @@ Teensy_Parallel_GFX::Teensy_Parallel_GFX(int16_t w, int16_t h) : WIDTH(w), HEIGH
 //=======================================================================
 // Add optinal support for using frame buffer to speed up complex outputs
 //=======================================================================
-void Teensy_Parallel_GFX::setFrameBuffer(uint16_t *frame_buffer) {
+void Teensy_Parallel_GFX::setFrameBuffer(uint16_t *frame_buffer, uint16_t bit_depth) {
 #ifdef ENABLE_FRAMEBUFFER
     _pfbtft = frame_buffer;
-    _tpfb = new Teensy_Parallel_FB16(this, (uintptr_t)frame_buffer);
+    if (bit_depth == 24) {
+        _tpfb = new Teensy_Parallel_FB24(this, (uintptr_t)frame_buffer);
+    } else {
+        _tpfb = new Teensy_Parallel_FB16(this, (uintptr_t)frame_buffer);
+    }
 #endif
 }
+
+
 
 uint8_t Teensy_Parallel_GFX::useFrameBuffer(
     boolean b) // use the frame buffer?  First call will allocate
