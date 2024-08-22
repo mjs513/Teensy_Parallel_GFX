@@ -353,7 +353,7 @@ class Teensy_Parallel_GFX : public Print {
         return (((r & 0x3E00) << 2) | ((g & 0x3F00) >> 3) | ((b & 0x3E00) >> 9));
     }
 
-    static uint16_t color888To565(uint16_t color) {
+    static uint16_t color888To565(uint32_t color) {
         return color565(color >>16, color >> 8, color);
     }
 

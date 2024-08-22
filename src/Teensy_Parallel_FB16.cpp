@@ -136,7 +136,7 @@ void Teensy_Parallel_FB16::readRect(int16_t x, int16_t y, int16_t w, int16_t h,
 //=============================================================================
 // 32 bit (RGB8888) version of the Frame buffer functions
 //=============================================================================
-inline uint16_t color888To565(uint16_t color) {
+inline uint16_t color888To565(uint32_t color) {
     return Teensy_Parallel_GFX::color565(color >>16, color >> 8, color);
 }
 
