@@ -2594,41 +2594,58 @@ void Teensy_Parallel_GFX::fillRectVGradient(int16_t x, int16_t y, int16_t w, int
     if ((y + h - 1) >= _displayclipy2)
         h = _displayclipy2 - y;
 
-    int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
-    color565toRGB14(color1, r1, g1, b1);
-    color565toRGB14(color2, r2, g2, b2);
-    dr = (r2 - r1) / h;
-    dg = (g2 - g1) / h;
-    db = (b2 - b1) / h;
+    uint8_t r1, g1, b1, r2, g2, b2;
+    int dr, dg, db, r, g, b;
+    
+    color565toRGB(color1, r1, g1, b1);
+    color565toRGB(color2, r2, g2, b2);
+    
+    dr = (r2 - r1);
+    dg = (g2 - g1);
+    db = (b2 - b1);
     r = r1;
     g = g1;
     b = b1;
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        for (; h > 0; h--) {
-            uint16_t color = RGB14tocolor565(r, g, b);
-            drawFastHLine(x, y, w, color);
-            r += dr;
-            g += dg;
-            b += db;
+        for (int ih = 1; ih < h; ih++) {
+            if (_bitDepth == 24) {
+                _tpfb->drawFastHLine24(x, y, w, color888(r, g, b));
+            } else {    
+                _tpfb->drawFastHLine(x, y, w, color565(r, g, b));
+            }
+            r = r1 + (dr * ih) / h;
+            g = g1 + (dg * ih) / h;
+            b = b1 + (db * ih) / h;
             y++;
         }
+        _tpfb->drawFastHLine(x, y, w, color2);
     } else
 #endif
     {
         setAddr(x, y, x + w - 1, y + h - 1);
         beginWrite16BitColors();
-        for (y = h; y > 0; y--) {
-            uint16_t color = RGB14tocolor565(r, g, b);
+        for (int ih = 1; ih < h; ih++) {
+            if (_bitDepth == 24) {
+                uint32_t color = color888(r, g, b);
 
-            for (x = w; x > 1; x--) {
-                write16BitColor(color);
+                for (x = w; x > 1; x--) {
+                    write24BitColor(color);
+                }
+            } else {    
+                uint16_t color = color565(r, g, b);
+                for (x = w; x > 1; x--) {
+                    write16BitColor(color);
+                }
             }
-            write16BitColor(color);
-            r += dr;
-            g += dg;
-            b += db;
+            r = r1 + (dr * ih) / h;
+            g = g1 + (dg * ih) / h;
+            b = b1 + (db * ih) / h;
+        }
+        // output last line as the 2nd color
+        for (x = w; x > 1; x--) {
+            write16BitColor(color2);
         }
         endWrite16BitColors();
     }
@@ -2655,43 +2672,56 @@ void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int
         w = _displayclipx2 - x;
     if ((y + h - 1) >= _displayclipy2)
         h = _displayclipy2 - y;
+    if ((w < 1) || (h < 1)) return; // nothing to do
 
-    int16_t r1, g1, b1, r2, g2, b2, dr, dg, db, r, g, b;
-    uint16_t color;
-    color565toRGB14(color1, r1, g1, b1);
-    color565toRGB14(color2, r2, g2, b2);
-    dr = (r2 - r1) / w;
-    dg = (g2 - g1) / w;
-    db = (b2 - b1) / w;
+    uint8_t r1, g1, b1, r2, g2, b2;
+    int dr, dg, db, r, g, b;
+    
+    color565toRGB(color1, r1, g1, b1);
+    color565toRGB(color2, r2, g2, b2);
+    
+    dr = (r2 - r1);
+    dg = (g2 - g1);
+    db = (b2 - b1);
     r = r1;
     g = g1;
     b = b1;
 
 #ifdef ENABLE_FRAMEBUFFER
     if (_use_fbtft) {
-        for (; h > 0; h--) {
-            uint16_t color = RGB14tocolor565(r, g, b);
-            drawFastVLine(x, y, w, color);
-            r += dr;
-            g += dg;
-            b += db;
+        // start at 1 as we want to output the final one at the end...    
+        for (int iw = 1; iw < w; iw++) {
+            if (_bitDepth == 24) {
+                uint32_t color = color888(r, g, b);
+                //Serial.printf("RRHG(24) %u: %x %x %x = %x\n", iw, r, g, b, color);
+                _tpfb->drawFastVLine24(x, y, h, color);
+            } else {    
+                uint16_t color = color565(r, g, b);
+                _tpfb->drawFastVLine(x, y, h, color);
+            }
+            r = r1 + (dr * iw) / w;
+            g = g1 + (dg * iw) / w;
+            b = b1 + (db * iw) / w;
             x++;
         }
+        _tpfb->drawFastVLine(x, y, h, color2);
     } else
 #endif
     {
         setAddr(x, y, x + w - 1, y + h - 1);
         beginWrite16BitColors();
         for (y = h; y > 0; y--) {
-            for (x = w; x > 1; x--) {
-                color = RGB14tocolor565(r, g, b);
-                write16BitColor(color);
-                r += dr;
-                g += dg;
-                b += db;
+            for (int iw = 1; iw < w; iw++) {
+                if (_bitDepth == 24) {
+                    write24BitColor(color888(r, g, b));
+                } else {    
+                    write16BitColor(color565(r, g, b));
+                }
+                r = r1 + (dr * iw) / w;
+                g = g1 + (dg * iw) / w;
+                b = b1 + (db * iw) / w;
             }
-            color = RGB14tocolor565(r, g, b);
-            write16BitColor(color);
+            write16BitColor(color2);
             r = r1;
             g = g1;
             b = b1;
@@ -2699,6 +2729,7 @@ void Teensy_Parallel_GFX::fillRectHGradient(int16_t x, int16_t y, int16_t w, int
         endWrite16BitColors();
     }
 }
+
 
 // fillScreenVGradient - fills screen with vertical gradient
 void Teensy_Parallel_GFX::fillScreenVGradient(uint16_t color1, uint16_t color2) {
@@ -3034,6 +3065,57 @@ void Teensy_Parallel_GFX::drawPixel24BPP(int16_t x, int16_t y, uint32_t color) {
 #endif
     writeRect24BPPFlexIO(x, y, 1, 1, 1, &color);
 }
+
+void Teensy_Parallel_GFX::drawFastVLine24BPP(int16_t x, int16_t y, int16_t h, uint32_t color) {
+    x += _originx;
+    y += _originy;
+    // Rectangular clipping
+    if ((x < _displayclipx1) || (x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (y < _displayclipy1) {
+        h = h - (_displayclipy1 - y);
+        y = _displayclipy1;
+    }
+    if ((y + h - 1) >= _displayclipy2)
+        h = _displayclipy2 - y;
+    if (h < 1)
+        return;
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        _tpfb->drawFastVLine24(x, y, h, color);
+        return;
+    }
+#endif    
+    fillRect24BPPFlexIO(x, y, 1, h, color);
+}
+
+void Teensy_Parallel_GFX::drawFastHLine24BPP(int16_t x, int16_t y, int16_t w, uint32_t color) {
+    x += _originx;
+    y += _originy;
+
+
+    // Rectangular clipping
+    if ((y < _displayclipy1) || (x >= _displayclipx2) || (y >= _displayclipy2))
+        return;
+    if (x < _displayclipx1) {
+        w = w - (_displayclipx1 - x);
+        x = _displayclipx1;
+    }
+    if ((x + w - 1) >= _displayclipx2)
+        w = _displayclipx2 - x;
+    if (w < 1)
+        return;
+
+#ifdef ENABLE_FRAMEBUFFER
+    if (_use_fbtft) {
+        _tpfb->drawFastHLine24(x, y, w, color);
+        return;
+    }
+#endif    
+    fillRect24BPPFlexIO(x, y, w, 1, color);
+}
+
 
 void Teensy_Parallel_GFX::fillRect24BPP(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color) {
     x += _originx;

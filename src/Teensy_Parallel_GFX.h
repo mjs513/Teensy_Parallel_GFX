@@ -136,8 +136,8 @@ class Teensy_Parallel_FB {
 public:
     Teensy_Parallel_FB(Teensy_Parallel_GFX *ptpgfx) : _ptpgfx(ptpgfx) {}
 
-    // note thesepre clipped. 
-    virtual uint8_t busWidth() = 0;
+    // note these are clipped. 
+    virtual uint8_t dataWidth() = 0;
     virtual void drawPixel(int16_t x, int16_t y, uint16_t color) = 0;
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) = 0;
     virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) = 0;
@@ -204,7 +204,7 @@ public:
 class Teensy_Parallel_FB16 : public Teensy_Parallel_FB {
 public:
     Teensy_Parallel_FB16(Teensy_Parallel_GFX *ptpgfx, uintptr_t fb) : Teensy_Parallel_FB(ptpgfx) {_pfbtft = (uint16_t*)fb; Serial.printf("Teensy_Parallel_FB16(%p %p)\n", ptpgfx, fb);}
-    virtual uint8_t busWidth() {return 16;}
+    virtual uint8_t dataWidth() {return 16;}
 
     virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
@@ -230,8 +230,8 @@ public:
 
 class Teensy_Parallel_FB24 : public Teensy_Parallel_FB {
 public:
-    Teensy_Parallel_FB24(Teensy_Parallel_GFX *ptpgfx, uintptr_t fb) : Teensy_Parallel_FB(ptpgfx) {_pfbtft = (uint32_t*)fb;}
-    virtual uint8_t busWidth() {return 24;}
+    Teensy_Parallel_FB24(Teensy_Parallel_GFX *ptpgfx, uintptr_t fb) : Teensy_Parallel_FB(ptpgfx) {_pfbtft = (RGB24_t *)fb;}
+    virtual uint8_t dataWidth() {return 24;}
 
     virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
     virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
@@ -252,7 +252,15 @@ public:
     virtual void fillRect24(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color);
     virtual void writeRect24(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint32_t *pcolors);
 
-    uint32_t *_pfbtft;
+    //uint32_t *_pfbtft;
+    typedef struct __attribute__((packed)) {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+    } RGB24_t;
+
+    RGB24_t *_pfbtft;
+
 
 };
 
@@ -262,6 +270,42 @@ public:
 class Teensy_Parallel_GFX : public Print {
 
   public:
+    // color565toRGB        - converts 565 format 16 bit color to RGB
+    static void color565toRGB(uint16_t color, uint8_t &r, uint8_t &g,
+                              uint8_t &b) {
+        r = (color >> 8) & 0x00F8;
+        g = (color >> 3) & 0x00FC;
+        b = (color << 3) & 0x00F8;
+    }
+
+    // color565toRGB14      - converts 16 bit 565 format color to 14 bit RGB (2
+    // bits clear for math and sign)
+    // returns 00rrrrr000000000,00gggggg00000000,00bbbbb000000000
+    // thus not overloading sign, and allowing up to double for additions for
+    // fixed point delta
+    static void color565toRGB14(uint16_t color, int16_t &r, int16_t &g,
+                                int16_t &b) {
+        r = (color >> 2) & 0x3E00;
+        g = (color << 3) & 0x3F00;
+        b = (color << 9) & 0x3E00;
+    }
+
+    // RGB14tocolor565      - converts 14 bit RGB back to 16 bit 565 format
+    // color
+    static uint16_t RGB14tocolor565(int16_t r, int16_t g, int16_t b) {
+        return (((r & 0x3E00) << 2) | ((g & 0x3F00) >> 3) | ((b & 0x3E00) >> 9));
+    }
+
+    static uint32_t color888(uint8_t r, uint8_t g, uint8_t b) __attribute__((always_inline)) {
+            return 0xff000000 | (r << 16) | (g << 8) | b;
+    } 
+
+    static uint16_t color888To565(uint32_t color) {
+        return color565(color >>16, color >> 8, color);
+    }
+
+
+
   Teensy_Parallel_GFX(int16_t w, int16_t h);
     void pushPixels16bit(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
     void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
@@ -269,6 +313,7 @@ class Teensy_Parallel_GFX : public Print {
     virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) = 0;
     virtual void beginWrite16BitColors() = 0;
     virtual void write16BitColor(uint16_t color) = 0;
+    virtual void write24BitColor(uint32_t color32) { write16BitColor(color888To565(color32)); }
     virtual void endWrite16BitColors() = 0;
     // virtual void write16BitColor(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *pcolors, uint16_t count) {};
     virtual void updateScreenFlexIO() {writeRectFlexIO(0, 0, _width, _height, _pfbtft);}
@@ -283,6 +328,7 @@ class Teensy_Parallel_GFX : public Print {
     // Except in the case where device actually supports 24 bit...
     virtual void fillRect24BPPFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color);
     virtual bool writeRect24BPPFlexIO(int16_t x, int16_t y, int16_t w, int16_t h, int16_t w_image, const uint32_t *pixels);
+    virtual void updateScreen24BPPFlexIO() {}; //
 
 
 
@@ -327,35 +373,6 @@ class Teensy_Parallel_GFX : public Print {
         return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
     }
 
-    // color565toRGB		- converts 565 format 16 bit color to RGB
-    static void color565toRGB(uint16_t color, uint8_t &r, uint8_t &g,
-                              uint8_t &b) {
-        r = (color >> 8) & 0x00F8;
-        g = (color >> 3) & 0x00FC;
-        b = (color << 3) & 0x00F8;
-    }
-
-    // color565toRGB14		- converts 16 bit 565 format color to 14 bit RGB (2
-    // bits clear for math and sign)
-    // returns 00rrrrr000000000,00gggggg00000000,00bbbbb000000000
-    // thus not overloading sign, and allowing up to double for additions for
-    // fixed point delta
-    static void color565toRGB14(uint16_t color, int16_t &r, int16_t &g,
-                                int16_t &b) {
-        r = (color >> 2) & 0x3E00;
-        g = (color << 3) & 0x3F00;
-        b = (color << 9) & 0x3E00;
-    }
-
-    // RGB14tocolor565		- converts 14 bit RGB back to 16 bit 565 format
-    // color
-    static uint16_t RGB14tocolor565(int16_t r, int16_t g, int16_t b) {
-        return (((r & 0x3E00) << 2) | ((g & 0x3F00) >> 3) | ((b & 0x3E00) >> 9));
-    }
-
-    static uint16_t color888To565(uint32_t color) {
-        return color565(color >>16, color >> 8, color);
-    }
 
     // from Adafruit_GFX.h
     void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
@@ -504,6 +521,8 @@ class Teensy_Parallel_GFX : public Print {
     void drawPixel24BPP(int16_t x, int16_t y, uint32_t color);
     void fillRect24BPP(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color);
     bool writeRect24BPP(int16_t x, int16_t y, int16_t w, int16_t h, const uint32_t *pixels);
+    void drawFastVLine24BPP(int16_t x, int16_t y, int16_t h, uint32_t color);
+    void drawFastHLine24BPP(int16_t x, int16_t y, int16_t w, uint32_t color);
 
 
 
@@ -516,6 +535,7 @@ class Teensy_Parallel_GFX : public Print {
     int16_t WIDTH;
     int16_t HEIGHT;
     int16_t _width, _height;
+    uint8_t _bitDepth = 16;  // sub-class can change this...
 
     int16_t cursor_x, cursor_y;
     bool _center_x_text = false;
