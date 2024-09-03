@@ -307,8 +307,8 @@ class Teensy_Parallel_GFX : public Print {
 
 
   Teensy_Parallel_GFX(int16_t w, int16_t h);
-    void pushPixels16bit(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
-    void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
+    //void pushPixels16bit(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
+    //void pushPixels16bitDMA(const uint16_t *pcolors, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {};
 
     virtual void setAddr(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) = 0;
     virtual void beginWrite16BitColors() = 0;

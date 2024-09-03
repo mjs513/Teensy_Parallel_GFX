@@ -63,7 +63,7 @@ void Teensy_Parallel_FB24::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16
 void Teensy_Parallel_FB24::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
     updateChangedRange(x, y, w, h); // update the range of the screen that has been changed;
     RGB24_t color24 = RGB565ToRGB24(color);
-    Serial.printf("FillRect24(%d,%d,%d,%d, %x): %u %x %x %x\n", x, y, w, h, color, sizeof(color24), color24.r, color24.g, color24.b);
+    //Serial.printf("FillRect(%d,%d,%d,%d, %x): %u %x %x %x\n", x, y, w, h, color, sizeof(color24), color24.r, color24.g, color24.b);
     RGB24_t *pfbRow = &_pfbtft[y * (int)_width + x];
     for (int16_t iy = 0; iy < h; iy++) {
         if ((y+iy) >= _height) break;
