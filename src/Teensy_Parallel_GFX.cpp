@@ -114,8 +114,23 @@ void Teensy_Parallel_GFX::setFrameBuffer(uint16_t *frame_buffer, uint16_t bit_de
     _pfbtft = frame_buffer;
     if (bit_depth == 24) {
         _tpfb = new Teensy_Parallel_FB24(this, (uintptr_t)frame_buffer);
+    } else if (bit_depth == 18) {
+        _tpfb = new Teensy_Parallel_FB18(this, (uintptr_t)frame_buffer);
     } else {
         _tpfb = new Teensy_Parallel_FB16(this, (uintptr_t)frame_buffer);
+    }
+#endif
+}
+
+// how big should the frame buffer be?
+uint32_t Teensy_Parallel_GFX::getRequiredframeBufferSize(uint8_t bit_depth) {
+#ifdef ENABLE_FRAMEBUFFER
+    if (bit_depth == 24) {
+        return 3 * _width * _height;
+    } else if (bit_depth == 18) {
+        return 4 * _width * _height;
+    } else {
+        return 2 * _width * _height;
     }
 #endif
 }
