@@ -407,29 +407,69 @@ class Teensy_Parallel_GFX : public Print {
     }
 
 
+ 
     // from Adafruit_GFX.h
+    // drawLine - Draws a line from (x0,y0) to (x1,y1) using RGB565 format color.
     void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+
+    // Draws a one pixel wide rectangle starting at x,y with the given width and height
+    // using the specific color (RGB565)
     void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+
+    // fills the entire screen with the specified color (RGB565)
     void fillScreen(uint16_t color);
+
+    // Draws a one pixel thick rounded rectangle using the specified color (RGB565)
     void drawRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
+
+    // Draws a filled rounded rectangle using the specified color (RGB565)
     void fillRoundRect(int16_t x0, int16_t y0, int16_t w, int16_t h, int16_t radius, uint16_t color);
+
+    // draws a one pixel thick circle with the specified color (RGB565)
     void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
     void drawCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, uint16_t color);
+
+    // draws a filled circle with the specified color (RGB565)
     void fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
     void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t cornername, int16_t delta, uint16_t color);
+
+    // draws an unfilled Triangle with the specified color (RGB565)
     void drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
+    
+    // draws a filled Triangle with the specified color (RGB565)
     void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color);
+
+    // Sets the specified pixel to the specified color (RGB565)
     void drawPixel(int16_t x, int16_t y, uint16_t color);
+
     void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
     void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+
+    // Draws a filled rectangle starting at x,y with the given width and height
+    // using the specific color (RGB565)
     void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
-    // Added functions to read pixel data...
+
+    // Returns the color (RGB565) of the pixel at the specified location. 
     uint16_t readPixel(int16_t x, int16_t y);
+
+    // Returns the colors (RGB565) of the pixels contained within the specified
+    // rectangle.  P 
     void readRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t *pcolors);
+
+    // write a rectangle of pixel data either to the screen or to frame buffer
+    // this is like the fillRect, except instead of contant color, the array contains the
+    // the color(RGB565) for each pixel. The pixel data is packed into the pcolors
+    // array where it is assumed that there are w * h values.
     void writeRect(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *pcolors);
+
+    // Like writeRect where it writes out individual RGB565 colors for each pixel.
+    // However instead of assuming that the pcolors array is w * h pixels, here
+    // you pass in the size of the image, as well as you can specify the offset
+    // within the array where the color for pixel (x,y) is stored.
     void writeSubImageRect(int16_t x, int16_t y, int16_t w, int16_t h,
                            int16_t image_offset_x, int16_t image_offset_y, int16_t image_width,
                            int16_t image_height, const uint16_t *pcolors);
+
 
     virtual size_t write(uint8_t);
     virtual size_t write(const uint8_t *buffer, size_t size);
