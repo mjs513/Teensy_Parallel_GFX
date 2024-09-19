@@ -13,7 +13,7 @@ BSD license, all text above must be included in any redistribution
 #include "FT6x36_t4.h"
 
 
-static volatile boolean FT6x36_t4::_touched = false;
+volatile boolean FT6x36_t4::_touched = false;
 
 
 FT6x36_t4::FT6x36_t4(uint8_t CTP_INT)
