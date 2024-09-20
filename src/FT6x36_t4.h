@@ -18,6 +18,8 @@ version:1.0
 
 /* FT6x36 definitions */
 #define FT6X36_I2C_ADDRESS 			0x38
+#define FT6X36_DEFAULT_THRESHOLD	40
+
 #define FT6X36_REGISTERS 			16     // there are more registers, but this is enought to get all 5 touch coordinates.                    
 #define FT6X36_TOUCH1_XH 			0x03
 #define FT6X36_GEST_ID 				0x01
@@ -41,6 +43,9 @@ bit[7:0] value it's x32 times the register val (20)
 */
 #define FT6X36_ID_G_THDIFF	 		0x85//the threshold where the coordinatis differs from orig[R/W]
 #define FT6X36_ID_G_CLTR	 		0x86//power control mode[R/W]
+
+
+
 
 /*
 TOUCH - XH
@@ -67,11 +72,14 @@ class FT6x36_t4 {
  	//   has happended.
 	FT6x36_t4(uint8_t CTP_INT=0xff); // default to not do interrupt unless user specifies pin.
 	bool 				begin(TwoWire *pwire = &Wire, uint8_t wire_addr = FT6X36_I2C_ADDRESS);
+	void 				setThreshold(uint8_t val);
 	bool 				touchPoint(uint16_t &x, uint16_t &y, uint8_t n = 0);
 	bool 				readData();
 	bool 				touched();
 	uint8_t 			gesture();
 	bool 				writeRegister(uint8_t reg,uint8_t val);
+	uint8_t 			readRegister(uint8_t reg);
+	void 				showAllRegisters();
  private:
 	static void 		 isr(void);
 	TwoWire 			*_pwire;

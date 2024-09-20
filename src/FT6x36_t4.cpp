@@ -40,6 +40,8 @@ bool FT6x36_t4::begin(TwoWire *pwire, uint8_t wire_addr)
 	delay(10);
 
 	if (!writeRegister(FT6X36_DEVICE_MODE,0)) return false;
+	setThreshold(FT6X36_DEFAULT_THRESHOLD);
+
 	if (_ctpInt != 0xff){
 		pinMode(_ctpInt ,INPUT_PULLUP);
 		attachInterrupt(digitalPinToInterrupt(_ctpInt),isr,FALLING);
@@ -47,6 +49,11 @@ bool FT6x36_t4::begin(TwoWire *pwire, uint8_t wire_addr)
 	return true;
 }
  
+void FT6x36_t4::setThreshold(uint8_t val) {
+	writeRegister(FT6X36_ID_G_THGROUP, val);	
+
+}
+
 //in safe mode it will also disconnect interrupt!
 bool FT6x36_t4::touched()
 {
@@ -69,6 +76,77 @@ bool FT6x36_t4::writeRegister(uint8_t reg,uint8_t val)
     _pwire->write(reg);
     _pwire->write(val);
     return _pwire->endTransmission(true) == 0;
+}
+
+uint8_t FT6x36_t4::readRegister(uint8_t reg) {
+    _pwire->beginTransmission(FT6X36_I2C_ADDRESS);
+    _pwire->write(reg);
+    _pwire->endTransmission(false);
+    _pwire->requestFrom(FT6X36_I2C_ADDRESS, 1);
+    if (!_pwire->available()) return 0;
+    return _pwire->read();
+}
+
+typedef struct {
+	uint8_t reg;
+	uint8_t hl_mask; // size of value with H and L
+    const __FlashStringHelper *reg_name;
+} id_to_name_t;
+
+static const  id_to_name_t reg_name_table[] PROGMEM = {
+{0x00, 0, F("DEV_MODE")},
+{0x01, 0, F("GEST_ID")},
+{0x02, 0, F("TD_STATUS")},
+{0x03, 0, F("P1_XH")},
+{0x04, 0xf, F("P1_XL")},
+{0x05, 0, F("P1_YH")},
+{0x06, 0xf, F("P1_YL")},
+{0x07, 0, F("P1_WEIGHT")},
+{0x08, 0, F("P1_MISC")},
+{0x09, 0, F("P2_XH")},
+{0x0A, 0xf, F("P2_XL")},
+{0x0B, 0, F("P2_YH")},
+{0x0C, 0xf, F("P2_YL")},
+{0x0D, 0, F("P2_WEIGHT")},
+{0x0E, 0, F("P2_MISC")},
+{0x80, 0, F("TH_GROUP")},
+{0x85, 0, F("TH_DIFF")},
+{0x86, 0, F("CTRL")},
+{0x87, 0, F("TIMEENTER MONITOR")},
+{0x88, 0, F("PERIODACTIVE")},
+{0x89, 0, F("PERIODMONITOR")},
+{0x91, 0, F("RADIAN_VALUE")},
+{0x92, 0, F("OFFSET_LEFT_RIGHT")},
+{0x93, 0, F("OFFSET_UP_DOWN")},
+{0x94, 0, F("DISTANCE_LEFT_RIGHT")},
+{0x95, 0, F("DISTANCE_UP_DOWN")},
+{0x96, 0, F("DISTANCE_ZOOM")},
+{0xA1, 0, F("LIB_VER_H")},
+{0xA2, 0xff, F("LIB_VER_L")},
+{0xA3, 0, F("CIPHER")},
+{0xA4, 0, F("G_MODE")},
+{0xA5, 0, F("PWR_MODE")},
+{0xA6, 0, F("FIRMID")},
+{0xA8, 0, F("FOCALTECH_ID")},
+{0xAF, 0, F("RELEASE_CODE_ID")},
+{0xBC, 0, F("STATE")}
+};
+
+
+void FT6x36_t4::showAllRegisters() {
+    Serial.println("\n*** FT6x36 Registers ***");
+    uint8_t	prev_reg_value = 0;
+    for (uint16_t ii = 0; ii < (sizeof(reg_name_table) / sizeof(reg_name_table[0])); ii++) {
+        uint8_t reg_value = readRegister(reg_name_table[ii].reg);
+        Serial.printf("%s(%x): %u(%x)", reg_name_table[ii].reg_name,
+                     reg_name_table[ii].reg, reg_value, reg_value);
+        if (reg_name_table[ii].hl_mask) {
+        	Serial.printf(" : %u", (uint16_t)(prev_reg_value & reg_name_table[ii].hl_mask) << 8 | reg_value);
+        }
+        Serial.println();
+        prev_reg_value = reg_value;
+    }
+    Serial.println("----------");
 }
  
  
