@@ -21,7 +21,7 @@ version:1.0
 #define FT6X36_DEFAULT_THRESHOLD 40
 
 #define FT6X36_REGISTERS_1 7  // Reads up through P1_YL - not sure if we need weight or Misc for 1 point
-#define FT6X36_REGISTERS_2 14 // reads through P2_YL...
+#define FT6X36_REGISTERS_2 15 // reads through P2_YL...
 
 #define FT6X36_TOUCH1_XH 0x03
 #define FT6X36_GEST_ID 0x01
@@ -45,6 +45,7 @@ bit[7:0] value it's x32 times the register val (20)
 */
 #define FT6X36_ID_G_THDIFF 0x85 // the threshold where the coordinatis differs from orig[R/W]
 #define FT6X36_ID_G_CLTR 0x86   // power control mode[R/W]
+#define FT6X36_REGISTER_G_MODE 0xA4 // 00 - Interrupt polling mode, 01 - Interrupt trigger mode
 
 class FT6x36_t4 {
   public:
@@ -64,14 +65,17 @@ class FT6x36_t4 {
     void showAllRegisters();
 
   private:
+  	// Spec says > 60 per second
+  	enum {TOUCH_TIMEOUT_MS = 17};
     static void isr(void);
     TwoWire *_pwire;
     uint8_t _wire_addr;
-    uint8_t _ctpInt;
     const uint8_t coordRegStart[2] = {{0x03}, {0x09}};
     uint8_t _regs[FT6X36_REGISTERS_2];
     bool _valid_data = false;
     uint8_t _max_touch = 2;
+    uint32_t _time_last_read;
+    static uint8_t _ctpInt;
     static volatile bool _touched;
 };
 

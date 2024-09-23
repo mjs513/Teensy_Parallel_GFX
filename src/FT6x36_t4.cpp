@@ -13,13 +13,18 @@ BSD license, all text above must be included in any redistribution
 #include <Wire.h>
 
 volatile boolean FT6x36_t4::_touched = false;
+uint8_t FT6x36_t4::_ctpInt = 0xff;
 
 FT6x36_t4::FT6x36_t4(uint8_t CTP_INT, uint8_t max_touch)
-    : _ctpInt(CTP_INT), _max_touch(max_touch) {
+    : _max_touch(max_touch) {
+
+    _ctpInt = CTP_INT;
 }
 
 void FT6x36_t4::isr(void) {
+	detachInterrupt(_ctpInt);
     _touched = true;
+
 }
 
 // in EXTRLN the entire ISR it's not handled by the library!
@@ -27,6 +32,7 @@ bool FT6x36_t4::begin(TwoWire *pwire, uint8_t wire_addr) {
     _pwire = pwire;
     _wire_addr = wire_addr;
     _touched = false;
+    _time_last_read = 0; 
 
     _pwire->begin();
     _pwire->setClock(400000UL); // Set I2C frequency to 400kHz
@@ -34,6 +40,10 @@ bool FT6x36_t4::begin(TwoWire *pwire, uint8_t wire_addr) {
 
     if (!writeRegister(FT6X36_DEVICE_MODE, 0))
         return false;
+    
+    // Set the interrupt to polling mode... 
+    writeRegister(FT6X36_REGISTER_G_MODE, 0);
+
     setThreshold(FT6X36_DEFAULT_THRESHOLD);
 
     if (_ctpInt != 0xff) {
@@ -47,21 +57,51 @@ void FT6x36_t4::setThreshold(uint8_t val) {
     writeRegister(FT6X36_ID_G_THGROUP, val);
 }
 
+// Hack see if we can do quick and dirty re attach interrupt
+#if 1
+void reAttachInterrupt(uint8_t pin)
+{
+	if (pin >= CORE_NUM_DIGITAL) return;
+	volatile IMXRT_GPIO_t *gpio = (IMXRT_GPIO_t *)portOutputRegister(pin);
+	uint32_t mask = digitalPinToBitMask(pin);
+	gpio->ISR = mask;  // clear any prior pending interrupt
+	gpio->IMR |= mask;
+}
+#endif
+
+
 // in safe mode it will also disconnect interrupt!
 bool FT6x36_t4::touched() {
     // Start off ignore if we have interrupt stuff
     // lets read in everything...
-    if ((_ctpInt != 0xff) && !_touched)
-        return false;
+    if (_ctpInt != 0xff) {
+    	// We have a touch pin.
+    	if (!_touched) return false;
 
-    if (!readData())
-        return false; // read failed.
+    	// Optional - if IO pin is not LOW they released
+    	if (digitalReadFast(_ctpInt)) {
+    		// high implies no longer touching.
+			reAttachInterrupt(_ctpInt);
+    		_touched = false;
+    		return false;
+    	}
+    }
 
-    uint8_t touch_points = _regs[FT6X36_TD_STATUS] & 0xf;
+    bool fRet;
+    if (!readData()) {
+    	_touched = false;
+    	fRet = false;
+    } else {
+	    uint8_t touch_points = _regs[FT6X36_TD_STATUS] & 0xf;
 
-    bool fRet = ((touch_points > 0) && (touch_points <= 2));
-    if (!fRet)
+	    fRet = ((touch_points > 0) && (touch_points <= 2));
+	}
+    if (!fRet) {
         _touched = false;
+		
+		if (_ctpInt != 0xff) reAttachInterrupt(_ctpInt);
+	}
+
     return fRet;
 }
 
@@ -159,6 +199,9 @@ bool FT6x36_t4::touchPoint(uint16_t &x, uint16_t &y, uint8_t n) {
 
 bool FT6x36_t4::readData() {
     // should start at register 0
+#if 1
+    _valid_data = _pwire->requestFrom(FT6X36_I2C_ADDRESS, (_max_touch == 1) ? FT6X36_REGISTERS_1 : FT6X36_REGISTERS_2, 0, 1, 1) > 0;
+#else	
     _pwire->beginTransmission(FT6X36_I2C_ADDRESS);
     _pwire->write(0);
     _valid_data = _pwire->endTransmission(false) == 0;
@@ -166,10 +209,12 @@ bool FT6x36_t4::readData() {
         return false;
 
     _valid_data = _pwire->requestFrom(FT6X36_I2C_ADDRESS, (_max_touch == 1) ? FT6X36_REGISTERS_1 : FT6X36_REGISTERS_2) > 0;
+#endif
     uint8_t register_number = 0;
     while (_pwire->available()) {
         _regs[register_number++] = _pwire->read();
     }
+	_time_last_read = millis();
     return _valid_data;
 }
 
